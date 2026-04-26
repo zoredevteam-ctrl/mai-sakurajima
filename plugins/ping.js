@@ -29,10 +29,10 @@ let handler = async (m, { conn }) => {
     // Diseño elegante con tipografía sans-serif
     const txt = 
         `✿    𝖯𝖨𝖭𝖦 MAI  ✿\n\n` +
-        `> 🍂 𝖫𝖺 𝗏𝖾𝗅𝗈𝖼𝗂𝖽𝖺𝖽 𝖽𝖾 𝗋𝖾𝗌𝗉𝗎𝖾𝗌𝗍𝖺 𝖽𝖾 𝖬𝖺𝗂 𝖾𝗌:\n\n` +
+        `> 🧸 𝖫𝖺 𝗏𝖾𝗅𝗈𝖼𝗂𝖽𝖺𝖽 𝖽𝖾 𝗋𝖾𝗌𝗉𝗎𝖾𝗌𝗍𝖺 𝖽𝖾 𝖬𝖺𝗂 𝖾𝗌:\n\n` +
         `✦ 𝖫𝖺𝗍𝖾𝗇𝖼𝗂𝖺: ${latencia} 𝗆𝗌\n` +
         `✦ 𝖤𝗌𝗍𝖺𝖽𝗈: ${rateLatency(latencia)}\n\n` +
-        `✿ ─────🌟🌟────── ✿`
+        `✿ ─────🧸🪶────── ✿`
 
     await conn.sendMessage(m.chat, {
         text: txt,
@@ -45,8 +45,8 @@ let handler = async (m, { conn }) => {
                 serverMessageId: -1
             },
             externalAdReply: {
-                title: '🍂🪶 𝖬𝖠𝖨 𝖲𝖠𝖪𝖴𝖱𝖠𝖩𝖨𝖬𝖠',
-                body: `⏱️ ${latencia} ms  ─  Developed by ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ`,
+                title: '🧸🪶 𝖬𝖠𝖨 𝖲𝖠𝖪𝖴𝖱𝖠𝖩𝖨𝖬𝖠',
+                body: `🧸 ${latencia} ms  ─  Developed by ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ`,
                 mediaType: 1,
                 thumbnailUrl: global.icono, // Usamos la URL directamente para no afectar la velocidad del ping
                 sourceUrl: global.rcanal || ''
