@@ -8,9 +8,9 @@ import { performance } from 'perf_hooks'
 
 const rateLatency = ms => {
     const n = parseFloat(ms)
-    if (n < 100) return '🪶 lo mejor'
+    if (n < 100) return '🧸 lo mejor'
     if (n < 300) return '🪶 Fea'
-    if (n < 600) return '🪶 ni opino'
+    if (n < 600) return '🧸 ni opino'
     return           '🪶 sin comentarios'
 }
 
@@ -41,7 +41,7 @@ let handler = async (m, { conn }) => {
             forwardingScore: 99,
             forwardedNewsletterMessageInfo: {
                 newsletterJid:   global.newsletterJid  = '120363408182996815@newsletter',
-                newsletterName:  global.newsletterName || '𓆩 ✧ 𝐌𝐚𝐢 ⌁ 𝑼𝒑𝒅𝒂𝒕𝒆𝒔 ✧ 𓆪',
+                newsletterName:  global.newsletterName = '⌜ ✦ 𝐌𝐚𝐢 𝐒𝐚𝐤𝐮𝐫𝐚𝐣𝐢𝐦𝐚 ✦ 𝐏𝐫𝐞𝐦𝐢𝐮𝐦 𝐎𝐰𝐧𝐞𝐫 ⌟',
                 serverMessageId: -1
             },
             externalAdReply: {
