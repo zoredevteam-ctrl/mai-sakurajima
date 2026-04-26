@@ -20,7 +20,7 @@ const sendUpdate = async (conn, m, text) => {
                 global.newsletterName = '⌜ ✦ 𝐌𝐚𝐢 𝐒𝐚𝐤𝐮𝐫𝐚𝐣𝐢𝐦𝐚 ✦ 𝐏𝐫𝐞𝐦𝐢𝐮𝐦 𝐎𝐰𝐧𝐞𝐫 ⌟'
             },
             externalAdReply: {
-                title: '⭐ ITSUKI UPDATE SYSTEM',
+                title: '🧸🪶 𝖬𝖠𝖨 𝖲𝖠𝖪𝖴𝖱𝖠𝖩𝖨𝖬𝖠',
                 body: 'Gestión de Repositorio y Datos',
                 mediaType: 1,
                 mediaUrl: global.rcanal || '',
