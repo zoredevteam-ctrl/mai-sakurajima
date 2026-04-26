@@ -1,18 +1,10 @@
 /**
  * PING — MAI SAKURAJIMA
  * Comandos: #ping, #p, #speed, #latencia
- * Z0RT SYSTEMS
+ * Desarrollado por Aarom
  */
 
 import { performance } from 'perf_hooks'
-
-const getIconThumb = async () => {
-    try {
-        const res = await fetch(global.icono || global.banner || '')
-        if (!res.ok) return null
-        return Buffer.from(await res.arrayBuffer())
-    } catch { return null }
-}
 
 const rateLatency = ms => {
     const n = parseFloat(ms)
@@ -23,40 +15,48 @@ const rateLatency = ms => {
 }
 
 let handler = async (m, { conn }) => {
-    const start    = performance.now()
-    await m.reply('...')
-    const latencia = (performance.now() - start).toFixed(2)
-    const thumb    = await getIconThumb()
+    // Calculamos el inicio
+    const start = performance.now()
+    
+    // Mensaje de carga inicial con estilo elegante
+    const { key } = await conn.sendMessage(m.chat, { 
+        text: `> 🌷 _Calculando latencia del sistema..._` 
+    }, { quoted: m })
 
-    const txt =
-        `⌜ ──────────── ⌝\n` +
-        `  P I N G\n` +
-        `⌞ ──────────── ⌟\n\n` +
-        `  ✦ Latencia    ${latencia} ms\n` +
-        `  ✦ Estado      ${rateLatency(latencia)}\n\n` +
-        `  ◈ Canal       ${global.rcanal || 'sin configurar'}\n\n` +
-        `  ⋆ ─── ✧ ─── Z0RT SYSTEMS ─── ✧ ─── ⋆`
+    // Calculamos el tiempo que tardó en enviar el mensaje
+    const latencia = (performance.now() - start).toFixed(2)
+
+    // Diseño elegante con tipografía sans-serif
+    const txt = 
+        `✿ ─── 𝖯𝖨𝖭𝖦 𝖲𝖸𝖲𝖳𝖤𝖬 ─── ✿\n\n` +
+        `> 🌷 𝖫𝖺 𝗏𝖾𝗅𝗈𝖼𝗂𝖽𝖺𝖽 𝖽𝖾 𝗋𝖾𝗌𝗉𝗎𝖾𝗌𝗍𝖺 𝖽𝖾 𝖬𝖺𝗂 𝖾𝗌:\n\n` +
+        `✦ 𝖫𝖺𝗍𝖾𝗇𝖼𝗂𝖺: ${latencia} 𝗆𝗌\n` +
+        `✦ 𝖤𝗌𝗍𝖺𝖽𝗈: ${rateLatency(latencia)}\n\n` +
+        `✿ ──────────────── ✿`
 
     await conn.sendMessage(m.chat, {
         text: txt,
         contextInfo: {
             isForwarded: true,
+            forwardingScore: 99,
             forwardedNewsletterMessageInfo: {
-                newsletterJid:   global.newsletterJid,
-                serverMessageId: -1,
-                newsletterName:  global.newsletterName
+                newsletterJid:   global.newsletterJid || '120363404822730259@newsletter',
+                newsletterName:  global.newsletterName || '𓆩 ✧ 𝐌𝐚𝐢 ⌁ 𝑼𝒑𝒅𝒂𝒕𝒆𝒔 ✧ 𓆪',
+                serverMessageId: -1
             },
             externalAdReply: {
-                title:                 `${global.botName || 'Mai Sakurajima'}`,
-                body:                  `${latencia} ms  ─  ${rateLatency(latencia)}`,
-                mediaType:             1,
-                thumbnail:             thumb,
-                renderLargerThumbnail: false,
-                sourceUrl:             global.rcanal || ''
+                title: '👑 𝖬𝖠𝖨 𝖲𝖠𝖪𝖴𝖱𝖠𝖩𝖨𝖬𝖠 𝖲𝖸𝖲𝖳𝖤𝖬',
+                body: `⏱️ ${latencia} ms  ─  Developed by Aarom ✨`,
+                mediaType: 1,
+                thumbnailUrl: global.icono, // Usamos la URL directamente para no afectar la velocidad del ping
+                sourceUrl: global.rcanal || ''
             }
         }
-    }, { quoted: m })
+    }, { edit: key }) // Editamos el mensaje de carga en lugar de enviar uno nuevo
 }
 
+handler.help = ['ping']
+handler.tags = ['main']
 handler.command = ['ping', 'p', 'speed', 'latencia']
+
 export default handler
