@@ -8,10 +8,10 @@ import { performance } from 'perf_hooks'
 
 const rateLatency = ms => {
     const n = parseFloat(ms)
-    if (n < 100) return '✦ Excelente'
-    if (n < 300) return '◈ Buena'
-    if (n < 600) return '◇ Regular'
-    return           '✧ Lenta'
+    if (n < 100) return '🪶 lo mejor'
+    if (n < 300) return '🪶 Fea'
+    if (n < 600) return '🪶 ni opino'
+    return           '🪶 sin comentarios'
 }
 
 let handler = async (m, { conn }) => {
@@ -20,7 +20,7 @@ let handler = async (m, { conn }) => {
     
     // Mensaje de carga inicial con estilo elegante
     const { key } = await conn.sendMessage(m.chat, { 
-        text: `> 🌷 _Calculando latencia del sistema..._` 
+        text: `> _Calculando latencia del sistema..._` 
     }, { quoted: m })
 
     // Calculamos el tiempo que tardó en enviar el mensaje
@@ -28,11 +28,11 @@ let handler = async (m, { conn }) => {
 
     // Diseño elegante con tipografía sans-serif
     const txt = 
-        `✿ ─── 𝖯𝖨𝖭𝖦 𝖲𝖸𝖲𝖳𝖤𝖬 ─── ✿\n\n` +
-        `> 🌷 𝖫𝖺 𝗏𝖾𝗅𝗈𝖼𝗂𝖽𝖺𝖽 𝖽𝖾 𝗋𝖾𝗌𝗉𝗎𝖾𝗌𝗍𝖺 𝖽𝖾 𝖬𝖺𝗂 𝖾𝗌:\n\n` +
+        `✿    𝖯𝖨𝖭𝖦 MAI  ✿\n\n` +
+        `> 🍂 𝖫𝖺 𝗏𝖾𝗅𝗈𝖼𝗂𝖽𝖺𝖽 𝖽𝖾 𝗋𝖾𝗌𝗉𝗎𝖾𝗌𝗍𝖺 𝖽𝖾 𝖬𝖺𝗂 𝖾𝗌:\n\n` +
         `✦ 𝖫𝖺𝗍𝖾𝗇𝖼𝗂𝖺: ${latencia} 𝗆𝗌\n` +
         `✦ 𝖤𝗌𝗍𝖺𝖽𝗈: ${rateLatency(latencia)}\n\n` +
-        `✿ ──────────────── ✿`
+        `✿ ─────🌟🌟────── ✿`
 
     await conn.sendMessage(m.chat, {
         text: txt,
@@ -45,8 +45,8 @@ let handler = async (m, { conn }) => {
                 serverMessageId: -1
             },
             externalAdReply: {
-                title: '👑 𝖬𝖠𝖨 𝖲𝖠𝖪𝖴𝖱𝖠𝖩𝖨𝖬𝖠 𝖲𝖸𝖲𝖳𝖤𝖬',
-                body: `⏱️ ${latencia} ms  ─  Developed by Aarom ✨`,
+                title: '🍂🪶 𝖬𝖠𝖨 𝖲𝖠𝖪𝖴𝖱𝖠𝖩𝖨𝖬𝖠',
+                body: `⏱️ ${latencia} ms  ─  Developed by ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ`,
                 mediaType: 1,
                 thumbnailUrl: global.icono, // Usamos la URL directamente para no afectar la velocidad del ping
                 sourceUrl: global.rcanal || ''
