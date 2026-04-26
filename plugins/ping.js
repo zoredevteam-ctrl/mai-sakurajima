@@ -1,7 +1,7 @@
 /**
  * PING — MAI SAKURAJIMA
  * Comandos: #ping, #p, #speed, #latencia
- * Desarrollado por Aarom
+ * código desarrollado por mi 
  */
 
 import { performance } from 'perf_hooks'
