@@ -40,7 +40,7 @@ let handler = async (m, { conn }) => {
             isForwarded: true,
             forwardingScore: 99,
             forwardedNewsletterMessageInfo: {
-                newsletterJid:   global.newsletterJid || '120363404822730259@newsletter',
+                newsletterJid:   global.newsletterJid  = '120363408182996815@newsletter',
                 newsletterName:  global.newsletterName || '𓆩 ✧ 𝐌𝐚𝐢 ⌁ 𝑼𝒑𝒅𝒂𝒕𝒆𝒔 ✧ 𓆪',
                 serverMessageId: -1
             },
