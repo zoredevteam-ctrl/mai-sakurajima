@@ -15,9 +15,9 @@ const sendUpdate = async (conn, m, text) => {
         contextInfo: {
             isForwarded: true,
             forwardedNewsletterMessageInfo: {
-                newsletterJid: global.newsletterJid || '120363408182996815@newsletter',
+                newsletterJid: global.newsletterJid  = '120363408182996815@newsletter',
                 serverMessageId: '',
-                newsletterName: global.newsletterName || 'Itsuki Nakano'
+                global.newsletterName = '⌜ ✦ 𝐌𝐚𝐢 𝐒𝐚𝐤𝐮𝐫𝐚𝐣𝐢𝐦𝐚 ✦ 𝐏𝐫𝐞𝐦𝐢𝐮𝐦 𝐎𝐰𝐧𝐞𝐫 ⌟'
             },
             externalAdReply: {
                 title: '⭐ ITSUKI UPDATE SYSTEM',
@@ -35,9 +35,9 @@ const sendUpdate = async (conn, m, text) => {
 }
 
 let handler = async (m, { conn, isOwner }) => {
-    if (!isOwner) return m.reply('❌ **Acceso Denegado.**\n\nLo lamento, pero este protocolo es privado. Solo Aarom o Félix tienen la autorización necesaria para realizar cambios en mis archivos. 📚')
+    if (!isOwner) return m.reply('❌ **Acceso Denegado.**\n\nLo lamento, pero este protocolo es privado. Solo mi creador tiene la autorización necesaria para realizar cambios en mis archivos. 📚')
 
-    await sendUpdate(conn, m, '⭐ *Iniciando revisión de datos...*\n\nPor favor, espera un momento mientras verifico si hay actualizaciones en el repositorio. 🍱')
+    await sendUpdate(conn, m, '⭐ *Iniciando revisión de datos...*\n\nPor favor, espera un momento mientras verifico si hay actualizaciones en el repositorio. 🧸')
 
     exec('git pull', async (err, stdout, stderr) => {
         if (err) {
