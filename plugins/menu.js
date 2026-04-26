@@ -108,7 +108,7 @@ let handler = async (m, { conn, args }) => {
     contextInfo: {
       externalAdReply: {
         title: '𝗠𝗔𝗜 𝗦𝗔𝗞𝗨𝗥𝗔𝗝𝗜𝗠𝗔 𝗦𝗬𝗦𝗧𝗘𝗠',
-        body: '𝖠𝖺𝗋𝗈𝗆 𝖣𝖾𝗏𝖾𝗅𝗈𝗉𝖾𝗋 ✨',
+        body: 'i am kameki 𝖣𝖾𝗏𝖾𝗅𝗈𝗉𝖾𝗋 ✨',
         thumbnailUrl: 'https://qu.ax/STpE.jpg',
         sourceUrl: 'https://github.com/XLR4-Security',
         mediaType: 1,
