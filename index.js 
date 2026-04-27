@@ -30,25 +30,28 @@ const log = {
   error:   msg => console.log(chalk.bgRed.white.bold('  ERROR ')    + ' ' + chalk.redBright(msg))
 }
 
-const c1 = chalk.hex('#E8C5D4')  // rosa suave
-const c2 = chalk.hex('#F2A7C3')  // rosa medio
-const c3 = chalk.hex('#C48FA0')  // rosa oscuro
+// ─── COLORES CELESTIAL ────────────────────────────────────────────────────────
+const c1 = chalk.hex('#A8D8FF')  // azul cielo
+const c2 = chalk.hex('#6EC6FF')  // azul celeste medio
+const c3 = chalk.hex('#3A8FD5')  // azul profundo
+const c4 = chalk.hex('#C8E6FF')  // azul muy suave
+const cG = chalk.hex('#E0F7FF')  // blanco celestial
 
 // ─── BANNER ───────────────────────────────────────────────────────────────────
 const maiBanner = `
-${c3('⌜ ──────────────────────────────────────────── ⌝')}
-${c3('│')}                                              ${c3('│')}
-${c3('│')}  ${c1('███╗   ███╗ █████╗ ██╗')}                       ${c3('│')}
-${c3('│')}  ${c1('████╗ ████║██╔══██╗██║')}                       ${c3('│')}
-${c3('│')}  ${c1('██╔████╔██║███████║██║')}                       ${c3('│')}
-${c3('│')}  ${c1('██║╚██╔╝██║██╔══██║██║')}                       ${c3('│')}
-${c3('│')}  ${c1('██║ ╚═╝ ██║██║  ██║██║')}                       ${c3('│')}
-${c3('│')}  ${c1('╚═╝     ╚═╝╚═╝  ╚═╝╚═╝')}                      ${c3('│')}
-${c3('│')}                                              ${c3('│')}
-${c3('│')}  ${c2('⋆ ─── ✧ ─── S A K U R A J I M A ─── ✧ ─── ⋆')}  ${c3('│')}
-${c3('│')}  ${chalk.white.bold('  ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ  |  Z0RT SYSTEMS     ')}  ${c3('│')}
-${c3('│')}  ${chalk.gray('  Version: ' + (global.botVersion || '1.0.0') + '  |  Premium Owner Edition   ')}  ${c3('│')}
-${c3('⌞ ──────────────────────────────────────────── ⌟')}
+${c3('╔══════════════════════════════════════════════╗')}
+${c3('║')}                                              ${c3('║')}
+${c3('║')}  ${c2('██╗  ██╗██╗██████╗ ██╗   ██╗██╗  ██╗ █████╗')}  ${c3('║')}
+${c3('║')}  ${c2('██║  ██║██║██╔══██╗██║   ██║██║ ██╔╝██╔══██╗')} ${c3('║')}
+${c3('║')}  ${c2('███████║██║██████╔╝██║   ██║█████╔╝ ███████║')}  ${c3('║')}
+${c3('║')}  ${c2('██╔══██║██║██╔══██╗██║   ██║██╔═██╗ ██╔══██║')} ${c3('║')}
+${c3('║')}  ${c1('██║  ██║██║██║  ██║╚██████╔╝██║  ██╗██║  ██║')} ${c3('║')}
+${c3('║')}  ${c1('╚═╝  ╚═╝╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝')}${c3('║')}
+${c3('║')}                                              ${c3('║')}
+${c3('║')}  ${c4('✦ ──── ✧ ── C E L E S T I A L  M D ── ✧ ──── ✦')}${c3('║')}
+${c3('║')}  ${cG.bold('  ˚₊· ͟͟͞͞  H I R U K A  |  Z0RT SYSTEMS        ')}  ${c3('║')}
+${c3('║')}  ${chalk.gray('  Version: ' + (global.botVersion || '1.0.0') + '  |  Premium Owner Edition   ')}  ${c3('║')}
+${c3('╚══════════════════════════════════════════════╝')}
 `
 
 // ─── CARGA DE PLUGINS ─────────────────────────────────────────────────────────
@@ -89,14 +92,14 @@ async function startBot() {
   if (!methodCodeQR && !methodCode && !state.creds.registered && !opcion) {
     console.clear()
     console.log(maiBanner)
-    console.log(chalk.bold.hex('#F2A7C3')('✦ SELECCIONA TU METODO DE VINCULACION:\n'))
-    console.log(chalk.hex('#E8C5D4')('   [ 1 ]') + chalk.white(' Codigo QR'))
-    console.log(chalk.hex('#E8C5D4')('   [ 2 ]') + chalk.white(' Codigo de 8 digitos'))
+    console.log(chalk.bold.hex('#6EC6FF')('✦ SELECCIONA TU METODO DE VINCULACION:\n'))
+    console.log(chalk.hex('#A8D8FF')('   [ 1 ]') + chalk.white(' Codigo QR'))
+    console.log(chalk.hex('#A8D8FF')('   [ 2 ]') + chalk.white(' Codigo de 8 digitos'))
     opcion = readlineSync.question(chalk.bold.yellow('\n ─── ✦ Elige una opcion (1 o 2): ')).trim()
 
     if (opcion === '2') {
       phoneNumber = readlineSync
-        .question(chalk.hex('#F2A7C3')('\n ✦ Ingresa tu numero (ej: 57310...): '))
+        .question(chalk.hex('#6EC6FF')('\n ✦ Ingresa tu numero (ej: 57310...): '))
         .replace(/\D/g, '')
     }
   }
@@ -112,7 +115,7 @@ async function startBot() {
     },
     markOnlineOnConnect:            true,
     generateHighQualityLinkPreview: true,
-    getMessage: async () => ({ conversation: 'Mai Sakurajima.' })
+    getMessage: async () => ({ conversation: 'Hiruka Celestial MD.' })
   })
 
   global.conn = conn
@@ -131,7 +134,7 @@ async function startBot() {
         const code      = await conn.requestPairingCode(phoneNumber)
         const formatted = code?.match(/.{1,4}/g)?.join('-') || code
         console.log(
-          chalk.bgHex('#F2A7C3').black.bold('\n ✦ TU CODIGO: ') +
+          chalk.bgHex('#3A8FD5').black.bold('\n ✦ TU CODIGO: ') +
           chalk.bgBlack.white.bold(` ${formatted} `) +
           '\n'
         )
@@ -146,12 +149,12 @@ async function startBot() {
     const { qr, connection, lastDisconnect } = update
 
     if (qr && (opcion === '1' || methodCodeQR)) {
-      console.log(chalk.hex('#F2A7C3')('\n ✦ Escanea este codigo QR:'))
+      console.log(chalk.hex('#6EC6FF')('\n ✦ Escanea este codigo QR:'))
       qrcode.generate(qr, { small: true })
     }
 
     if (connection === 'open') {
-      log.success(`Online: ${conn.user?.name || 'Mai Sakurajima'} ✓`)
+      log.success(`Online: ${conn.user?.name || 'Hiruka Celestial MD'} ✓`)
     }
 
     if (connection === 'close') {
