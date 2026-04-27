@@ -3,7 +3,7 @@ import chalk from 'chalk'
 
 const getThumbnail = async () => {
     try {
-        const res = await fetch(global.icono || 'https://causas-files.vercel.app/fl/gl13.jpg')
+        const res = await fetch(global.icono  = 'https://causas-files.vercel.app/fl/mmal.jpg')
         return Buffer.from(await res.arrayBuffer())
     } catch { return null }
 }
