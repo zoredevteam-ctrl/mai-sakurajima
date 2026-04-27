@@ -433,9 +433,11 @@ export const handler = async (m, conn, plugins) => {
 
         // ── Ejecución del plugin ──────────────────────────────────────────────
         try {
-            const fn = typeof cmd.run === 'function'
+            const fn = typeof cmd === 'function'
+                ? cmd
+                : typeof cmd.run === 'function'
                 ? cmd.run.bind(cmd)
-                : typeof cmd === 'function' ? cmd : null;
+                : null;
             if (!fn) throw new TypeError(`Plugin "${commandName}" sin funcion valida`);
 
             await fn(m, {
