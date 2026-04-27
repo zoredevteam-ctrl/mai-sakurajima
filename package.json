@@ -1,7 +1,7 @@
 {
-  "name": "mai-sakurajima-bot",
+  "name": "hiruka-celestial-md",
   "version": "1.0.0",
-  "description": "WhatsApp Bot Premium — Mai Sakurajima Edition",
+  "description": "WhatsApp Bot Premium — Hiruka Celestial MD Edition",
   "main": "index.js",
   "type": "module",
   "scripts": {
