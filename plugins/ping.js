@@ -41,7 +41,8 @@ let handler = async (m, { conn }) => {
             forwardingScore: 99,
             forwardedNewsletterMessageInfo: {
                 newsletterJid:   global.newsletterJid  = '120363408182996815@newsletter',
-                newsletterName:  global.newsletterName = '⌜ ✦ 𝐌𝐚𝐢 𝐒𝐚𝐤𝐮𝐫𝐚𝐣𝐢𝐦𝐚 ✦ 𝐏𝐫𝐞𝐦𝐢𝐮𝐦 𝐎𝐰𝐧𝐞𝐫 ⌟',
+                newsletterName:  global.newsletterName = '⌜ ❀ 𝐇𝐢𝐫𝐮𝐤𝐚 ❀ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐏𝐚𝐭𝐫𝐨𝐧 ⌟'
+,
                 serverMessageId: -1
             },
             externalAdReply: {
