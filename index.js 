@@ -31,11 +31,11 @@ const log = {
 }
 
 // ─── COLORES CELESTIAL ────────────────────────────────────────────────────────
-const c1 = chalk.hex('#A8D8FF')  // azul cielo
-const c2 = chalk.hex('#6EC6FF')  // azul celeste medio
-const c3 = chalk.hex('#3A8FD5')  // azul profundo
-const c4 = chalk.hex('#C8E6FF')  // azul muy suave
-const cG = chalk.hex('#E0F7FF')  // blanco celestial
+const c1 = chalk.hex('#A8D8FF')
+const c2 = chalk.hex('#6EC6FF')
+const c3 = chalk.hex('#3A8FD5')
+const c4 = chalk.hex('#C8E6FF')
+const cG = chalk.hex('#E0F7FF')
 
 // ─── BANNER ───────────────────────────────────────────────────────────────────
 const maiBanner = `
@@ -53,6 +53,23 @@ ${c3('║')}  ${cG.bold('  ˚₊· ͟͟͞͞  H I R U K A  |  Z0RT SYSTEMS       
 ${c3('║')}  ${chalk.gray('  Version: ' + (global.botVersion || '1.0.0') + '  |  Premium Owner Edition   ')}  ${c3('║')}
 ${c3('╚══════════════════════════════════════════════╝')}
 `
+
+// ─── ANTIBAN — rate limiter por usuario ──────────────────────────────────────
+const msgCount   = new Map()
+const SPAM_LIMIT  = 10        // max mensajes por ventana
+const SPAM_WINDOW = 10_000    // ventana de 10 segundos
+
+function isSpamming(jid) {
+  const now  = Date.now()
+  const data = msgCount.get(jid) || { count: 0, resetAt: now + SPAM_WINDOW }
+  if (now > data.resetAt) {
+    msgCount.set(jid, { count: 1, resetAt: now + SPAM_WINDOW })
+    return false
+  }
+  data.count++
+  msgCount.set(jid, data)
+  return data.count > SPAM_LIMIT
+}
 
 // ─── CARGA DE PLUGINS ─────────────────────────────────────────────────────────
 const plugins = new Map()
@@ -144,7 +161,7 @@ async function startBot() {
     }, 3000)
   }
 
-  // ─── EVENTOS DE CONEXION ──────────────────────────────────────────────────
+  // ─── EVENTO: CONEXION ─────────────────────────────────────────────────────
   conn.ev.on('connection.update', async update => {
     const { qr, connection, lastDisconnect } = update
 
@@ -170,7 +187,7 @@ async function startBot() {
     }
   })
 
-  // ─── BIENVENIDA / DESPEDIDA — delega a plugins ───────────────────────────
+  // ─── EVENTO: PARTICIPANTES DE GRUPO ──────────────────────────────────────
   conn.ev.on('group-participants.update', async (anu) => {
     try {
       for (const [, plugin] of plugins) {
@@ -187,11 +204,42 @@ async function startBot() {
     }
   })
 
-  // ─── MENSAJES ─────────────────────────────────────────────────────────────
+  // ─── EVENTO: MENSAJES + ANTIBAN ───────────────────────────────────────────
   conn.ev.on('messages.upsert', async ({ messages, type }) => {
     if (type !== 'notify') return
+
     const m = messages[0]
-    if (!m?.message || m.key.remoteJid === 'status@broadcast') return
+    if (!m?.message) return
+
+    const jid = m.key?.remoteJid || ''
+
+    // ── Antiban 1: ignorar status broadcast ──────────────────────────────────
+    if (jid === 'status@broadcast') return
+
+    // ── Antiban 2: ignorar newsletters ───────────────────────────────────────
+    if (jid.endsWith('@newsletter')) return
+
+    // ── Antiban 3: ignorar mensajes propios ──────────────────────────────────
+    if (m.key?.fromMe) return
+
+    // ── Antiban 4: ignorar listas de difusión ────────────────────────────────
+    if (jid.includes('broadcast')) return
+
+    // ── Antiban 5: ignorar mensajes de sistema (sin texto real) ──────────────
+    const tipos = Object.keys(m.message || {})
+    const ignorados = ['protocolMessage', 'senderKeyDistributionMessage', 'reactionMessage']
+    if (tipos.every(t => ignorados.includes(t))) return
+
+    // ── Antiban 6: rate limit — anti spam por usuario ─────────────────────────
+    const sender = m.key?.participant || jid
+    if (isSpamming(sender)) {
+      log.warn(`Spam bloqueado: ${sender}`)
+      return
+    }
+
+    // ── Antiban 7: delay humanizado antes de responder ────────────────────────
+    await new Promise(r => setTimeout(r, 300 + Math.random() * 500))
+
     try {
       await handler(m, conn, plugins)
     } catch (e) {
