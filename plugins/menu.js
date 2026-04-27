@@ -51,6 +51,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
        「 𝖨 𝖭 𝖥 𝖮  𝖡 𝖮 𝖳 」
 ╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝
 ║ 🪭 *𝖭𝖮𝖬𝖡𝖱𝖤*: 𝖧𝖨𝖱𝖴𝖪𝖠 𝖲𝖸𝖲𝖳𝖤𝖬
+║ 🪭 *CREADOR*: ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ
 ║ ⛩️ *𝖬𝖮𝖣𝖮*: 𝖯𝖴𝖡𝖫𝖨𝖢𝖮
 ║ ⚜️ *𝖢𝖮𝖬𝖠𝖭𝖣𝖮𝖲*: ${totalCommands}
 ║ ⏱️ *𝖴𝖯𝖳𝖨𝖬𝖤*: ${uptime}
@@ -96,7 +97,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         },
         externalAdReply: {
           title: '⛩️ 𝖧𝖨𝖱𝖴𝖪𝖠 𝖲𝖸𝖲𝖳𝖤𝖬',
-          body: '🪷 𝖣𝖾𝗏𝖾𝗅𝗈𝗉𝖾𝖽 𝖻𝗒 𝖠𝖺𝗋𝗈𝗆 & 𝖥𝖾́𝗅𝗂𝗑',
+          body: '🪷 𝖣𝖾𝗏𝖾𝗅𝗈𝗉𝖾𝖽 𝖻𝗒 ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ',
           thumbnailUrl: global.banner || 'https://telegra.ph/file/default.jpg', // Usa el banner global
           sourceUrl: global.rcanal || '', // Usa el canal global
           mediaType: 1,
