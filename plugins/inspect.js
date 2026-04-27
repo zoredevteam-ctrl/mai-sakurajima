@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════════╗
 // ║              NEWSLETTER & RCANAL — ZERO TWO                 ║
-// ║                  power by ZoreDevTeam                       ║
+// ║                  power by HIRUKA                      ║
 // ╚══════════════════════════════════════════════════════════════╝
 
 import { database } from '../lib/database.js'
@@ -58,7 +58,7 @@ const plugin = async (m, { conn, args, isOwner, isROwner, prefix }) => {
     await global.sendWithCtx(conn, m.chat, {
         text:
 `╭──────────────────────────╮
-│  💗 *NEWSLETTER ZERO TWO* 💗  │
+│  🌰 *NEWSLETTER HIRUKA*  🌰 │
 ╰──────────────────────────╯
 
 📡 *Canal:* ${global.rcanal}
