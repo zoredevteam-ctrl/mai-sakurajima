@@ -73,16 +73,27 @@ const similarity = (a, b) => {
 // ── Reply estilo HIRUKA con newsletter context ────────────────────────────────
 const hirukaReply = async (conn, m, txt) => {
     try {
-        const thumb = await global.getIconThumb?.() || null
-        const ctx   = global.getNewsletterCtx?.(thumb) || {}
-        await conn.sendMessage(m.chat, {
-            text: txt,
-            contextInfo: ctx
-        }, { quoted: m })
+        const thumb = await global.getIconThumb?.() || null;
+        const ctx   = global.getNewsletterCtx?.(thumb) || {};
+        await conn.sendMessage(m.chat, { text: txt, contextInfo: ctx }, { quoted: m });
     } catch {
-        await m.reply(txt)
+        try { await m.reply(txt); } catch {}
     }
-}
+};
+
+// ── Cabecera HIRUKA ───────────────────────────────────────────────────────────
+const H = `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n`;
+const F = `\n╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`;
+
+const box = (title, lines) =>
+    H +
+    `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
+    `  「 ${title} 」\n` +
+    `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
+    lines.map(l => `┣ 🪷 ${l}`).join('\n') +
+    F;
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 const eventsLoadedFor = new WeakSet();
 
@@ -127,26 +138,26 @@ export const handler = async (m, conn, plugins) => {
 
         // ── Bot OFF ───────────────────────────────────────────────────────────
         if (global.botOff && !m.fromMe) {
-            const senderCheck = (m.sender || '').replace(/:[0-9A-Za-z]+(?=@s\.whatsapp\.net)/, '')
-            if (!isOwnerJid(senderCheck)) return
+            const senderCheck = (m.sender || '').replace(/:[0-9A-Za-z]+(?=@s\.whatsapp\.net)/, '');
+            if (!isOwnerJid(senderCheck)) return;
         }
 
         // ── Primary ───────────────────────────────────────────────────────────
         if (m.isGroup && conn._subbotId) {
-            const groupData = database.data?.groups?.[m.chat]
+            const groupData = database.data?.groups?.[m.chat];
             if (groupData?.primaryOnly) {
-                const body = (m.body || '').trim().toLowerCase()
-                const isPrimaryCmd = ['#setprimary','#removeprimary','.setprimary','.removeprimary'].some(c => body.startsWith(c))
-                if (!isPrimaryCmd) return
+                const body = (m.body || '').trim().toLowerCase();
+                const isPrimaryCmd = ['#setprimary','#removeprimary','.setprimary','.removeprimary'].some(c => body.startsWith(c));
+                if (!isPrimaryCmd) return;
             }
         }
 
         // ── Mute ──────────────────────────────────────────────────────────────
         if (m.isGroup) {
-            const muted = database.data?.groups?.[m.chat]?.muted || []
+            const muted = database.data?.groups?.[m.chat]?.muted || [];
             if (muted.includes(m.sender)) {
-                try { await conn.sendMessage(m.chat, { delete: m.key }) } catch {}
-                return
+                try { await conn.sendMessage(m.chat, { delete: m.key }); } catch {}
+                return;
             }
         }
 
@@ -159,28 +170,28 @@ export const handler = async (m, conn, plugins) => {
 
         // ── handler.before ────────────────────────────────────────────────────
         if (m.isGroup) {
-            const bodyCheck   = (m.body || '').trim()
-            const tienePrefix = ['#', '.', '/', '$'].some(p => bodyCheck.startsWith(p))
+            const bodyCheck   = (m.body || '').trim();
+            const tienePrefix = ['#', '.', '/', '$'].some(p => bodyCheck.startsWith(p));
             if (!tienePrefix) {
                 for (const [, plugin] of plugins) {
                     if (typeof plugin?.before === 'function') {
                         try {
-                            const senderB  = (m.sender || '').replace(/:[0-9A-Za-z]+(?=@s\.whatsapp\.net)/, '')
-                            const isOwnerB = isOwnerJid(senderB)
-                            let isAdminB   = isOwnerB
+                            const senderB  = (m.sender || '').replace(/:[0-9A-Za-z]+(?=@s\.whatsapp\.net)/, '');
+                            const isOwnerB = isOwnerJid(senderB);
+                            let isAdminB   = isOwnerB;
                             if (!isAdminB) {
                                 try {
-                                    const gMeta = await conn.groupMetadata(m.chat)
+                                    const gMeta = await conn.groupMetadata(m.chat);
                                     isAdminB = gMeta.participants.some(p =>
                                         (normalizeCore(p.id || p.jid) === normalizeCore(senderB)) &&
                                         (p.admin || p.isAdmin || p.isSuperAdmin)
-                                    )
+                                    );
                                 } catch {}
                             }
-                            const stop = await plugin.before(m, { conn, isAdmin: isAdminB, isOwner: isOwnerB })
-                            if (stop === true) return
+                            const stop = await plugin.before(m, { conn, isAdmin: isAdminB, isOwner: isOwnerB });
+                            if (stop === true) return;
                         } catch (e) {
-                            console.log(chalk.red('[BEFORE ERROR]'), e.message)
+                            console.log(chalk.red('[BEFORE ERROR]'), e.message);
                         }
                     }
                 }
@@ -254,14 +265,10 @@ export const handler = async (m, conn, plugins) => {
                 .map(c => ({ cmd: c, score: similarity(commandName, c) }))
                 .filter(o => o.score >= 45)
                 .sort((a, b) => b.score - a.score)
-                .slice(0, 3)
-
-            const sugerencias = similares.length
-                ? similares.map(s => `┣ 🪷 \`${prefix + s.cmd}\`  ─  ${s.score}%`).join('\n')
-                : `┣ 🪷 ninguno encontrado`
+                .slice(0, 3);
 
             const txt =
-                `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
+                H +
                 `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
                 `   「 𝖢𝖮𝖬𝖠𝖭𝖣𝖮 𝖭𝖮 𝖤𝖭𝖢𝖮𝖭𝖳𝖱𝖠𝖣𝖮 」\n` +
                 `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
@@ -269,13 +276,13 @@ export const handler = async (m, conn, plugins) => {
                 `┣ 🪷 usa *${prefix}menu* para ver todo\n` +
                 (similares.length
                     ? `\n╔═══════⩽ ✧ 🪷 ✧ ⩾═══════╗\n` +
-                      `    「 𝖳𝖠𝖫 𝖵𝖤𝖹 𝖰𝖴𝖨𝖲𝖨𝖲𝖳𝖤 𝖣𝖤𝖢𝖨𝖱... 」\n` +
+                      `  「 𝖳𝖠𝖫 𝖵𝖤𝖹 𝖰𝖴𝖨𝖲𝖨𝖲𝖳𝖤 𝖣𝖤𝖢𝖨𝖱... 」\n` +
                       `╚═══════⩽ ✧ 🪷 ✧ ⩾═══════╝\n` +
-                      `${sugerencias}`
+                      similares.map(s => `┣ 🪷 \`${prefix + s.cmd}\`  ─  ${s.score}%`).join('\n')
                     : '') +
-                `\n╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
+                F;
 
-            return hirukaReply(conn, m, txt)
+            return hirukaReply(conn, m, txt);
         }
 
         const isPremium    = isOwner || isPremiumJid(senderJid);
@@ -345,141 +352,81 @@ export const handler = async (m, conn, plugins) => {
         // ── Validaciones estilo HIRUKA ────────────────────────────────────────
 
         if (isGroup && database.data.groups[m.chat]?.modoadmin && !isAdmin && !isOwner) {
-            return hirukaReply(conn, m,
-                `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-                `      「 𝖬𝖮𝖣𝖮 𝖠𝖣𝖬𝖨𝖭 𝖠𝖢𝖳𝖨𝖵𝖮 」\n` +
-                `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-                `┣ 🪷 solo obedezco a los *administradores*\n` +
-                `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-            )
+            return hirukaReply(conn, m, box('𝖬𝖮𝖣𝖮 𝖠𝖣𝖬𝖨𝖭 𝖠𝖢𝖳𝖨𝖵𝖮', [
+                'solo obedezco a los *administradores*'
+            ]));
         }
 
         if (database.data.settings?.modoowner && !isOwner) {
-            return hirukaReply(conn, m,
-                `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-                `     「 𝖬𝖮𝖣𝖮 𝖮𝖶𝖭𝖤𝖱 𝖠𝖢𝖳𝖨𝖵𝖮 」\n` +
-                `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-                `┣ 🪷 ahora mismo solo atiendo al *owner*\n` +
-                `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-            )
+            return hirukaReply(conn, m, box('𝖬𝖮𝖣𝖮 𝖮𝖶𝖭𝖤𝖱 𝖠𝖢𝖳𝖨𝖵𝖮', [
+                'ahora mismo solo atiendo al *owner*'
+            ]));
         }
 
         if (database.data.users[senderJid]?.banned && !isOwner) {
-            return hirukaReply(conn, m,
-                `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-                `    「 𝖠𝖢𝖢𝖤𝖲𝖮 𝖱𝖤𝖲𝖳𝖱𝖨𝖭𝖦𝖨𝖣𝖮 」\n` +
-                `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-                `┣ 🪷 no puedo atenderte. (￣ヘ￣)\n` +
-                `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-            )
+            return hirukaReply(conn, m, box('𝖠𝖢𝖢𝖤𝖲𝖮 𝖱𝖤𝖲𝖳𝖱𝖨𝖭𝖦𝖨𝖣𝖮', [
+                'no puedo atenderte. (￣ヘ￣)'
+            ]));
         }
 
         if (cmd.rowner && !isROwner) {
-            return hirukaReply(conn, m, isOwner
-                ? `┣ 🪷 procedo de inmediato. ٩(◕‿◕)۶`
-                : `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                  `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-                  `    「 𝖠𝖢𝖢𝖤𝖲𝖮 𝖤𝖷𝖢𝖫𝖴𝖲𝖨𝖵𝖮 」\n` +
-                  `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-                  `┣ 🪷 solo para el *owner principal*. (￣ヘ￣)\n` +
-                  `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-            )
+            if (isOwner) return hirukaReply(conn, m, box('𝖠𝖢𝖢𝖤𝖲𝖮 𝖤𝖷𝖢𝖫𝖴𝖲𝖨𝖵𝖮', ['procedo de inmediato. ٩(◕‿◕)۶']));
+            return hirukaReply(conn, m, box('𝖠𝖢𝖢𝖤𝖲𝖮 𝖤𝖷𝖢𝖫𝖴𝖲𝖨𝖵𝖮', [
+                'solo para el *owner principal*. (￣ヘ￣)'
+            ]));
         }
 
         if (cmd.owner && !isOwner) {
-            return hirukaReply(conn, m,
-                `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-                `    「 𝖠𝖢𝖢𝖤𝖲𝖮 𝖱𝖤𝖲𝖳𝖱𝖨𝖭𝖦𝖨𝖣𝖮 」\n` +
-                `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-                `┣ 🪷 solo para los *creadores*. (￣ヘ￣)\n` +
-                `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-            )
+            return hirukaReply(conn, m, box('𝖠𝖢𝖢𝖤𝖲𝖮 𝖱𝖤𝖲𝖳𝖱𝖨𝖭𝖦𝖨𝖣𝖮', [
+                'solo para los *creadores*. (￣ヘ￣)'
+            ]));
         }
 
         if (cmd.premium && !isPremium) {
-            return hirukaReply(conn, m,
-                `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                `╔═══════⩽ ✧ 💎 ✧ ⩾═══════╗\n` +
-                `    「 𝖤𝖷𝖢𝖫𝖴𝖲𝖨𝖵𝖮 𝖯𝖱𝖤𝖬𝖨𝖴𝖬 」\n` +
-                `╚═══════⩽ ✧ 💎 ✧ ⩾═══════╝\n` +
-                `┣ 🪷 necesitas *premium* para esto. (〃￣ω￣〃)\n` +
-                `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-            )
+            return hirukaReply(conn, m, box('𝖤𝖷𝖢𝖫𝖴𝖲𝖨𝖵𝖮 𝖯𝖱𝖤𝖬𝖨𝖴𝖬', [
+                'necesitas *premium* para esto. (〃￣ω￣〃)'
+            ]));
         }
 
         if (cmd.register && !isRegistered) {
-            return hirukaReply(conn, m,
-                `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                `╔═══════⩽ ✧ 🪷 ✧ ⩾═══════╗\n` +
-                `    「 𝖱𝖤𝖦𝖨𝖲𝖳𝖱𝖮 𝖱𝖤𝖰𝖴𝖤𝖱𝖨𝖣𝖮 」\n` +
-                `╚═══════⩽ ✧ 🪷 ✧ ⩾═══════╝\n` +
-                `┣ 🪷 primero debes registrarte. (⁠✿⁠◡⁠‿⁠◡⁠)\n` +
-                `┣ 🪷 usa: *${prefix}reg nombre.edad*\n` +
-                `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-            )
+            return hirukaReply(conn, m, box('𝖱𝖤𝖦𝖨𝖲𝖳𝖱𝖮 𝖱𝖤𝖰𝖴𝖤𝖱𝖨𝖣𝖮', [
+                'primero debes registrarte. (⁠✿⁠◡⁠‿⁠◡⁠)',
+                `usa: *${prefix}reg nombre.edad*`
+            ]));
         }
 
         if (cmd.group && !isGroup) {
-            return hirukaReply(conn, m,
-                `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-                `       「 𝖲𝖮𝖫𝖮 𝖤𝖭 𝖦𝖱𝖴𝖯𝖮𝖲 」\n` +
-                `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-                `┣ 🪷 este comando solo funciona en *grupos*. (°ロ°)\n` +
-                `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-            )
+            return hirukaReply(conn, m, box('𝖲𝖮𝖫𝖮 𝖤𝖭 𝖦𝖱𝖴𝖯𝖮𝖲', [
+                'este comando solo funciona en *grupos*. (°ロ°)'
+            ]));
         }
 
         if (cmd.admin && !isAdmin) {
-            return hirukaReply(conn, m, isOwner
-                ? `┣ 🪷 procedo. ٩(◕‿◕)۶`
-                : `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                  `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-                  `   「 𝖲𝖮𝖫𝖮 𝖠𝖣𝖬𝖨𝖭𝖨𝖲𝖳𝖱𝖠𝖣𝖮𝖱𝖤𝖲 」\n` +
-                  `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-                  `┣ 🪷 necesitas ser *admin* para esto. (￣ヘ￣)\n` +
-                  `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-            )
+            if (isOwner) return hirukaReply(conn, m, box('𝖠𝖣𝖬𝖨𝖭', ['procedo. ٩(◕‿◕)۶']));
+            return hirukaReply(conn, m, box('𝖲𝖮𝖫𝖮 𝖠𝖣𝖬𝖨𝖭𝖨𝖲𝖳𝖱𝖠𝖣𝖮𝖱𝖤𝖲', [
+                'necesitas ser *admin* para esto. (￣ヘ￣)'
+            ]));
         }
 
         if (cmd.botAdmin && !isBotAdmin) {
-            return hirukaReply(conn, m,
-                `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-                `  「 𝖭𝖤𝖢𝖤𝖲𝖨𝖳𝖮 𝖲𝖤𝖱 𝖠𝖣𝖬𝖨𝖭 」\n` +
-                `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-                `┣ 🪷 dame *admin* para ejecutar esto. (⁠っ⁠.⁠ ⁠⸝⁠⸝⁠⸝⁠ ⁠.⁠ ⁠c⁠)\n` +
-                `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-            )
+            return hirukaReply(conn, m, box('𝖭𝖤𝖢𝖤𝖲𝖨𝖳𝖮 𝖲𝖤𝖱 𝖠𝖣𝖬𝖨𝖭', [
+                'dame *admin* para ejecutar esto. (⁠っ⁠. ⸝⸝⸝ . c⁠)'
+            ]));
         }
 
         if (cmd.private && isGroup) {
-            return hirukaReply(conn, m,
-                `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-                `      「 𝖲𝖮𝖫𝖮 𝖤𝖭 𝖯𝖱𝖨𝖵𝖠𝖣𝖮 」\n` +
-                `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-                `┣ 🪷 úsalo en nuestro *chat personal*. (⁠˘⁠︶⁠˘⁠)⁠.⁠｡⁠*⁠♡\n` +
-                `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-            )
+            return hirukaReply(conn, m, box('𝖲𝖮𝖫𝖮 𝖤𝖭 𝖯𝖱𝖨𝖵𝖠𝖣𝖮', [
+                'úsalo en nuestro *chat personal*. (⁠˘⁠︶⁠˘⁠)⁠.⁠｡⁠*⁠♡'
+            ]));
         }
 
         if (cmd.limit && !isPremium && !isOwner) {
             const userLimit = database.data.users[senderJid].limit ?? 0;
             if (userLimit < 1) {
-                return hirukaReply(conn, m,
-                    `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                    `╔═══════⩽ ✧ 🪷 ✧ ⩾═══════╗\n` +
-                    `      「 𝖫𝖨𝖬𝖨𝖳𝖤 𝖠𝖦𝖮𝖳𝖠𝖣𝖮 」\n` +
-                    `╚═══════⩽ ✧ 🪷 ✧ ⩾═══════╝\n` +
-                    `┣ 🪷 agotaste tus usos de hoy. (－‸－)\n` +
-                    `┣ 🪷 vuelve mañana o adquiere *premium*\n` +
-                    `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-                )
+                return hirukaReply(conn, m, box('𝖫𝖨𝖬𝖨𝖳𝖤 𝖠𝖦𝖮𝖳𝖠𝖣𝖮', [
+                    'agotaste tus usos de hoy. (－‸－)',
+                    'vuelve mañana o adquiere *premium*'
+                ]));
             }
             database.data.users[senderJid].limit -= 1;
         }
@@ -488,11 +435,58 @@ export const handler = async (m, conn, plugins) => {
         try {
             const fn = typeof cmd.run === 'function'
                 ? cmd.run.bind(cmd)
-                : typeof cmd === 'function' ? cmd : null
-            if (!fn) throw new TypeError(`Plugin "${commandName}" sin funcion valida`)
+                : typeof cmd === 'function' ? cmd : null;
+            if (!fn) throw new TypeError(`Plugin "${commandName}" sin funcion valida`);
 
             await fn(m, {
                 conn, args,
                 text: args.join(' '),
                 command: commandName,
-                usedPre
+                usedPrefix: prefix,
+                isOwner, isROwner, isPremium, isRegistered,
+                isAdmin, isBotAdmin, isGroup,
+                who, db: database.data, prefix, plugins
+            });
+        } catch (e) {
+            console.log(chalk.red('\n[!] ERROR EN PLUGIN:'), e);
+
+            const name       = e?.name    || 'Error desconocido';
+            const message    = e?.message || String(e);
+            const stackLines = e?.stack?.split('\n') || [];
+            let file = 'desconocido', line = '?';
+
+            for (const l of stackLines) {
+                const match = l.match(/\((.*plugins.*[\\/]([^:\\/]+)):(\d+):(\d+)\)/);
+                if (match) { file = match[2]; line = match[3]; break; }
+            }
+
+            if (isOwner) {
+                await hirukaReply(conn, m,
+                    H +
+                    `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
+                    `      「 𝖤𝖱𝖱𝖮𝖱 𝖣𝖤𝖳𝖤𝖢𝖳𝖠𝖣𝖮 」\n` +
+                    `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
+                    `┣ 🪷 comando:  *${prefix + commandName}*\n` +
+                    `┣ 🪷 archivo:  ${file}  (línea: ${line})\n` +
+                    `┣ 🪷 error:    ${name}\n` +
+                    `┣ 🪷 detalle:  ${message.slice(0, 280)}` +
+                    F
+                );
+            }
+        }
+
+    } catch (err) {
+        console.log(chalk.red('[HANDLER ERROR]'), err);
+        const senderCheck = (m?.sender || '').replace(/:[0-9A-Za-z]+(?=@s\.whatsapp\.net)/, '');
+        if (m?.reply && isOwnerJid(senderCheck)) {
+            await hirukaReply(conn, m,
+                H +
+                `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
+                `        「 𝖤𝖱𝖱𝖮𝖱 𝖢𝖱𝖨𝖳𝖨𝖢𝖮 」\n` +
+                `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
+                `┣ 🪷 ${String(err).slice(0, 280)}` +
+                F
+            );
+        }
+    }
+};
