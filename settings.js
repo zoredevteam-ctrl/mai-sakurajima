@@ -27,7 +27,7 @@ global.newsletterJid  = '120363408182996815@newsletter'
 global.newsletterName = '⌜ ✦ 𝐌𝐚𝐢 𝐒𝐚𝐤𝐮𝐫𝐚𝐣𝐢𝐦𝐚 ✦ 𝐏𝐫𝐞𝐦𝐢𝐮𝐦 𝐎𝐰𝐧𝐞𝐫 ⌟'
 
 // Banner principal (imagen grande para menú)
-global.banner = 'https://causas-files.vercel.app/fl/srzh.jpg'
+global.banner = 'https://causas-files.vercel.app/fl/ni9o.jpg'
 
 // Icono (imagen pequeña para comandos)
 global.icono  = 'https://causas-files.vercel.app/fl/gl13.jpg'
