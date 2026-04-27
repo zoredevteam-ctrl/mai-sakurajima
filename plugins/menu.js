@@ -59,7 +59,7 @@ let handler = async (m, { conn, usedPrefix, db }) => {
 ╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗
        「 𝖨 𝖭 𝖥 𝖮  𝖲 𝖨 𝖲 𝖳 𝖤 𝖬 𝖠 」
 ╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝
-║ 🪭 *𝖢𝖱𝖤𝖠𝖣𝖮𝖱*: 𝖠𝖺𝗋𝗈𝗆 & 𝖥𝖾́𝗅𝗂𝗑
+║ 🪭 *𝖢𝖱𝖤𝖠𝖣𝖮𝖱*: ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ
 ║ ⛩️ *𝖤𝖲𝖳𝖠𝖣𝖮*: 𝖢𝖾𝗅𝖾𝗌𝗍𝗂𝖺𝗅
 ║ ⚜️ *𝖥𝖤𝖢𝖧𝖠*: ${date}
 ║ ⏱️ *𝖴𝖯𝖳𝖨𝖬𝖤*: ${uptime}
@@ -75,7 +75,7 @@ let handler = async (m, { conn, usedPrefix, db }) => {
 ║ 📊 *𝖭𝖨𝖵𝖤𝖫*: ${level}
 ╚═══════════════════════╝
 
-> ⚜️ 𝖴𝗌𝖺 *#𝗊𝗋* 𝗉𝖺𝗋𝖺 𝗌𝖾𝗋 𝖲𝗎𝖻-𝖡𝗈𝗍.
+> ⚜️ 𝖴𝗌𝖺 *#Code* 𝗉𝖺𝗋𝖺 𝗌𝖾𝗋 𝖲𝗎𝖻-𝖡𝗈𝗍.
 
 *𝖫 𝖨 𝖲 𝖳 𝖠  𝖣 𝖤  𝖢 𝖮 𝖬 𝖠 𝖭 𝖣 𝖮 𝖲*
 
@@ -110,7 +110,7 @@ let handler = async (m, { conn, usedPrefix, db }) => {
                 forwardingScore: 99,
                 externalAdReply: {
                     title: `⛩️ 𝖧𝖨𝖱𝖴𝖪𝖠 𝖲𝖸𝖲𝖳𝖤𝖬 ⛩️`,
-                    body: `🪷 𝖣𝖾𝗏𝖾𝗅𝗈𝗉𝖾𝖽 𝖻𝗒 𝖠𝖺𝗋𝗈𝗆`,
+                    body: `🪷 𝖣𝖾𝗏𝖾𝗅𝗈𝗉𝖾𝖽 𝖻𝗒 ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ`,
                     mediaType: 1,
                     thumbnail: bannerBuffer,
                     renderLargerThumbnail: true,
