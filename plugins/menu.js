@@ -1,137 +1,133 @@
-import moment from 'moment-timezone';
-import fs from 'fs';
-import { xpRange } from '../lib/levelling.js';
-import path from 'path';
+import { performance } from 'perf_hooks'
 
-const cwd = process.cwd();
+const getBannerBuffer = async (bannerSrc) => {
+    if (!bannerSrc) return null
+    try {
+        if (bannerSrc.startsWith('data:image')) return Buffer.from(bannerSrc.split(',')[1], 'base64')
+        const res = await fetch(bannerSrc)
+        if (!res.ok) return null
+        return Buffer.from(await res.arrayBuffer())
+    } catch { return null }
+}
 
-let handler = async (m, { conn, args, usedPrefix, command }) => {
-  try {
-    // 1. Validar base de datos
-    if (!global.db.data) await global.db.read();
+let handler = async (m, { conn, usedPrefix, db }) => {
+    const nombreBot = 'Hiruka System'
+    const bannerSrc = global.banner || 'https://causas-files.vercel.app/fl/gl13.jpg'
+    const canalLink = global.rcanal || ''
 
-    let userId = m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.sender;
-    let name = await conn.getName(userId);
-    let user = global.db.data.users[userId];
+    const sender = m.sender
+    const username = m.pushName || 'Usuario'
 
-    if (!user) return conn.reply(m.chat, '⚜️ 𝖤𝗅 𝗎𝗌𝗎𝖺𝗋𝗂𝗈 𝗇𝗈 𝖾𝗌𝗍𝖺́ 𝗋𝖾𝗀𝗂𝗌𝗍𝗋𝖺𝖽𝗈 𝖾𝗇 𝗅𝗈𝗌 𝗋𝖾𝗀𝗂𝗌𝗍𝗋𝗈𝗌 𝖼𝖾𝗅𝖾𝗌𝗍𝗂𝖺𝗅𝖾𝗌.', m);
+    // ── FECHA Y MOMENTO ──
+    const now = new Date()
+    const date = new Intl.DateTimeFormat('es-CO', {
+        timeZone: 'America/Bogota',
+        day: 'numeric', month: 'long', year: 'numeric'
+    }).format(now)
 
-    // 2. Datos del usuario
-    let { exp, level, role, money, limit } = user; 
-    let coins = user.coin || 0; 
+    const hora = new Intl.DateTimeFormat('es-CO', { timeZone: 'America/Bogota', hour: 'numeric', hour12: false }).format(now)
+    const h = parseInt(hora)
+    const momentDay = h < 12 ? 'mañana' : h < 18 ? 'tarde' : 'noche'
 
-    // 3. Cálculos de sistema
-    let _uptime = process.uptime() * 1000;
-    let uptime = clockString(_uptime);
-    let totalreg = Object.keys(global.db.data.users).length;
-    let totalCommands = Object.values(global.plugins).filter(v => v.help && v.tags).length;
+    // ── UPTIME ──
+    const uptimeSec = Math.floor(process.uptime())
+    const ud = Math.floor(uptimeSec / 86400)
+    const uh = Math.floor((uptimeSec % 86400) / 3600)
+    const um = Math.floor((uptimeSec % 3600) / 60)
+    const uptime = ud > 0 ? `${ud}d ${uh}h ${um}m` : `${uh}h ${um}m`
 
-    // 4. Gestión de Medios (Videos/Gifs)
-    const gifVideosDir = path.join(cwd, 'src', 'menu');
-    let randomGif;
+    // ── DATOS ──
+    const dbData = global.db?.data || {}
+    const users = dbData.users || {}
+    const totalreg = Object.keys(users).length
+    const userData = users[sender] || {}
+    
+    // Rankings y Monedas
+    const coins = (userData.money || 0).toLocaleString()
+    const level = userData.level || 1
+    const exp = (userData.exp || 0).toLocaleString()
 
-    if (fs.existsSync(gifVideosDir)) {
-      const gifVideos = fs.readdirSync(gifVideosDir)
-        .filter(file => file.endsWith('.mp4'))
-        .map(file => path.join(gifVideosDir, file));
+    const px = usedPrefix || '#'
 
-      if (gifVideos.length > 0) {
-        randomGif = gifVideos[Math.floor(Math.random() * gifVideos.length)];
-      }
-    }
+    // ── TEXTO ESTILO HIRUKA ──
+    const txt = `
+⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️
 
-    // 5. Verificación de Oficialidad
-    const isOfficial = conn.user.jid === global.conn?.user?.jid;
-
-    let txt = `
-⛩️ ─── 𝖠𝖵𝖨𝖲𝖮 𝖣𝖤 𝖲𝖨𝖲𝖳𝖤𝖬𝖠 ─── ⛩️
-🪷 𝖲𝖺𝗅𝗎𝖽𝗈𝗌, ${name}. 𝖲𝗈𝗒 𝖧𝗂𝗋𝗎𝗄𝖺... (⁠✿⁠◡⁠‿⁠◡⁠)
+🪷 𝖲𝖺𝗅𝗎𝖽𝗈𝗌, ${username}. 
+𝖤𝗌𝗉𝖾𝗋𝗈 𝗊𝗎𝖾 𝗍𝖾𝗇𝗀𝖺𝗌 𝗎𝗇𝖺 𝗅𝗂𝗇𝖽𝖺 ${momentDay}. (⁠✿⁠◡⁠‿⁠◡⁠)
 
 ╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗
-       「 𝖨 𝖭 𝖥 𝖮  𝖡 𝖮 𝖳 」
+       「 𝖨 𝖭 𝖥 𝖮  𝖲 𝖨 𝖲 𝖳 𝖤 𝖬 𝖠 」
 ╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝
-║ 🪭 *𝖭𝖮𝖬𝖡𝖱𝖤*: 𝖧𝖨𝖱𝖴𝖪𝖠 𝖲𝖸𝖲𝖳𝖤𝖬
-║ 🪭 *CREADOR*: ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ
-║ ⛩️ *𝖬𝖮𝖣𝖮*: 𝖯𝖴𝖡𝖫𝖨𝖢𝖮
-║ ⚜️ *𝖢𝖮𝖬𝖠𝖭𝖣𝖮𝖲*: ${totalCommands}
+║ 🪭 *𝖢𝖱𝖤𝖠𝖣𝖮𝖱*: 𝖠𝖺𝗋𝗈𝗆 & 𝖥𝖾́𝗅𝗂𝗑
+║ ⛩️ *𝖤𝖲𝖳𝖠𝖣𝖮*: 𝖢𝖾𝗅𝖾𝗌𝗍𝗂𝖺𝗅
+║ ⚜️ *𝖥𝖤𝖢𝖧𝖠*: ${date}
 ║ ⏱️ *𝖴𝖯𝖳𝖨𝖬𝖤*: ${uptime}
-║ 👥 *𝖱𝖤𝖦𝖨𝖲𝖳𝖱𝖠𝖣𝖮𝖲*: ${totalreg}
+║ 👥 *𝖴𝖲𝖴𝖠𝖱𝖨𝖮𝖲*: ${totalreg}
 ╚════════════════════════╝
 
 ╔═══════⩽ ✧ 🪷 ✧ ⩾═══════╗
      「 𝖨 𝖭 𝖥 𝖮  𝖴 𝖲 𝖴 𝖠 𝖱 𝖨 𝖮 」
 ╚═══════⩽ ✧ 🪷 ✧ ⩾═══════╝
-║ 👤 *𝖴𝖲𝖴𝖠𝖱𝖨𝖮*: ${name}
+║ 👤 *𝖭𝖮𝖬𝖡𝖱𝖤*: ${username}
 ║ 🚀 *𝖤𝖷𝖯*: ${exp}
-║ 💲 *𝖬𝖮𝖭𝖤𝖣𝖠𝖲*: ${coins}
+║ 💲 *𝖢𝖮𝖨𝖭𝖲*: ${coins}
 ║ 📊 *𝖭𝖨𝖵𝖤𝖫*: ${level}
-║ 🏅 *𝖱𝖠𝖭𝖦𝖮*: ${role}
 ╚═══════════════════════╝
 
 > ⚜️ 𝖴𝗌𝖺 *#𝗊𝗋* 𝗉𝖺𝗋𝖺 𝗌𝖾𝗋 𝖲𝗎𝖻-𝖡𝗈𝗍.
 
-╔══⩽ ✧ ⛩️ ✧ ⩾══╗
-   「 ${isOfficial ? '𝖡𝗈𝗍 𝖮𝖿𝗂𝖼𝗂𝖺𝗅' : '𝖲𝗎𝖻-𝖡𝗈𝗍'} 」
-╚══⩽ ✧ ⛩️ ✧ ⩾══╝
-
 *𝖫 𝖨 𝖲 𝖳 𝖠  𝖣 𝖤  𝖢 𝖮 𝖬 𝖠 𝖭 𝖣 𝖮 𝖲*
 
 ⛩️───・──・──・﹕₊˚ ✦・🪭
-┣ 🪷 *#𝗁𝖾𝗅𝗉* > ✦ 𝖬𝗎𝖾𝗌𝗍𝗋𝖺 𝖾𝗅 𝗆𝖾𝗇𝗎́.
-┣ 🪷 *#𝗎𝗉𝗍𝗂𝗆𝖾* > ✦ 𝖳𝗂𝖾𝗆𝗉𝗈 𝖺𝖼𝗍𝗂𝗏𝗈.
-┣ 🪷 *#𝗌𝖼* > ✦ 𝖱𝖾𝗉𝗈𝗌𝗂𝗍𝗈𝗋𝗂𝗈.
-┣ 🪷 *#𝗈wn𝖾𝗋* > ✦ 𝖢𝗈𝗇𝗍𝖺𝖼𝗍𝗈.
+┣ 🪷 *${px}ping* ┊ 𝖫𝖺𝗍𝖾𝗇𝖼𝗂𝖺
+┣ 🪷 *${px}menu* ┊ 𝖤𝗌𝗍𝖾 𝗆𝖾𝗇𝗎́
+┣ 🪷 *${px}owner* ┊ 𝖢𝗈𝗇𝗍𝖺𝖼𝗍𝗈
+┣ 🪷 *${px}update* ┊ 𝖠𝖼𝗍𝗎𝖺𝗅𝗂𝗓𝖺𝗋
+┣ 🪷 *${px}leave* ┊ 𝖲𝖺𝗅𝗂𝗋
+┣ 🪷 *${px}kick* ┊ 𝖤𝗅𝗂𝗆𝗂𝗇𝖺𝗋
+┣ 🪷 *${px}add* ┊ 𝖠𝗀𝗋𝖾𝗀𝖺𝗋
+┣ 🪷 *${px}chamba* ┊ 𝖳𝗋𝖺𝖻𝖺𝗃𝖺𝗋
+┣ 🪷 *${px}bal* ┊ 𝖡𝖺𝗅𝖺𝗇𝖼𝖾
+┣ 🪷 *${px}ia* ┊ 𝖢𝗁𝖺𝗍 𝖨𝖠
 ╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝
-`.trim();
 
-    // 6. Configuración de envío con Variables Globales
-    let messageOptions = {
-      caption: txt,
-      contextInfo: {
-        isForwarded: true,
-        forwardingScore: 99,
-        forwardedNewsletterMessageInfo: {
-          newsletterJid: global.newsletterJid || '120363408182996815@newsletter',
-          newsletterName: global.newsletterName || '⌜ ❀ 𝐇𝐢𝐫𝐮𝐤𝐚 ❀ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐏𝐚𝐭𝐫𝐨𝐧 ⌟',
-          serverMessageId: -1
-        },
-        externalAdReply: {
-          title: '⛩️ 𝖧𝖨𝖱𝖴𝖪𝖠 𝖲𝖸𝖲𝖳𝖤𝖬',
-          body: '🪷 𝖣𝖾𝗏𝖾𝗅𝗈𝗉𝖾𝖽 𝖻𝗒 ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ',
-          thumbnailUrl: global.banner || 'https://telegra.ph/file/default.jpg', // Usa el banner global
-          sourceUrl: global.rcanal || '', // Usa el canal global
-          mediaType: 1,
-          renderLargerThumbnail: true
-        }
-      }
-    };
+🪷 𝖯𝗈𝗐𝖾𝗋 𝖻𝗒 𝖠𝖺𝗋𝗈𝗆 𝖲𝗒𝗌𝗍𝖾𝗆𝗌 🪭
+`.trim()
 
-    if (randomGif) {
-      messageOptions.video = { url: randomGif };
-      messageOptions.gifPlayback = true; // Activa el modo GIF para el video
-    } else {
-      // Fallback a imagen global si no hay videos en la carpeta
-      messageOptions.image = { url: global.banner || 'https://telegra.ph/file/default.jpg' };
+    const bannerBuffer = await getBannerBuffer(bannerSrc)
+
+    try {
+        await conn.sendMessage(m.chat, {
+            document: bannerBuffer || Buffer.from(''),
+            mimetype: 'application/pdf',
+            fileName: `⌜ ❀ 𝐇𝐢𝐫𝐮𝐤𝐚 ❀ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐏𝐚𝐭𝐫𝐨𝐧 ⌟`,
+            fileLength: 99999999999999,
+            pageCount: 1,
+            caption: txt,
+            contextInfo: {
+                isForwarded: true,
+                forwardingScore: 99,
+                externalAdReply: {
+                    title: `⛩️ 𝖧𝖨𝖱𝖴𝖪𝖠 𝖲𝖸𝖲𝖳𝖤𝖬 ⛩️`,
+                    body: `🪷 𝖣𝖾𝗏𝖾𝗅𝗈𝗉𝖾𝖽 𝖻𝗒 𝖠𝖺𝗋𝗈𝗆`,
+                    mediaType: 1,
+                    thumbnail: bannerBuffer,
+                    renderLargerThumbnail: true,
+                    sourceUrl: canalLink
+                },
+                forwardedNewsletterMessageInfo: {
+                    newsletterJid: global.newsletterJid || '120363408182996815@newsletter',
+                    newsletterName: global.newsletterName || '⌜ ❀ 𝐇𝐢𝐫𝐮𝐤𝐚 ❀ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐏𝐚𝐭𝐫𝐨𝐧 ⌟',
+                    serverMessageId: -1
+                }
+            }
+        }, { quoted: m })
+    } catch (e) {
+        console.error(e)
+        await conn.sendMessage(m.chat, { text: txt }, { quoted: m })
     }
-
-    await conn.sendMessage(m.chat, messageOptions, { quoted: m });
-
-  } catch (e) {
-    console.error(e);
-    conn.reply(m.chat, '⚜️ 𝖮𝖼𝗎𝗋𝗋𝗂𝗈́ 𝗎𝗇 𝖾𝗋𝗋𝗈𝗋 𝖾𝗇 𝖾𝗅 𝖿𝗅𝗎𝗃𝗈 𝖼𝖾𝗅𝖾𝗌𝗍𝗂𝖺𝗅 𝖺𝗅 𝗀𝖾𝗇𝖾𝗋𝖺𝗋 𝖾𝗅 𝗆𝖾𝗇𝗎́.', m);
-  }
-};
-
-handler.help = ['menu'];
-handler.tags = ['main'];
-handler.command = ['menu', 'help', 'principal'];
-
-
-export default handler;
-
-function clockString(ms) {
-  let h = isNaN(ms) ? '--' : Math.floor(ms / 3600000);
-  let m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60;
-  let s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60;
-  return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
 }
+
+handler.command = ['menu', 'help', 'comandos']
+export default handler
