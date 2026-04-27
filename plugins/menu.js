@@ -92,7 +92,7 @@ let handler = async (m, { conn, usedPrefix, db }) => {
 ┣ 🪷 *${px}ia* ┊ 𝖢𝗁𝖺𝗍 𝖨𝖠
 ╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝
 
-🪷 𝖯𝗈𝗐𝖾𝗋 𝖻𝗒 𝖠𝖺𝗋𝗈𝗆 𝖲𝗒𝗌𝗍𝖾𝗆𝗌 🪭
+🪷 𝖯𝗈𝗐𝖾𝗋 𝖻𝗒 ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ XLRS4 🪭
 `.trim()
 
     const bannerBuffer = await getBannerBuffer(bannerSrc)
