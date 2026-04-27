@@ -91,6 +91,6 @@ global.newsletterName = 'nombre_del_canal'
 
 <div align="center">
   <p>
-    <b>꒰⑅ᵕ༚ᵕ꒱˖♡ &nbsp; Hecho con amor por <a href="https://github.com/tuusuario">Aarom</a> — Z0RT SYSTEMS</b>
+    <b>꒰⑅ᵕ༚ᵕ꒱˖♡ &nbsp; Hecho con amor por <a href="https://github.com/Zoredevteam-ctrl">˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ</a> — Z0RT SYSTEMS</b>
   </p>
 </div>
