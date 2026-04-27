@@ -54,23 +54,6 @@ ${c3('║')}  ${chalk.gray('  Version: ' + (global.botVersion || '1.0.0') + '  |
 ${c3('╚══════════════════════════════════════════════╝')}
 `
 
-// ─── ANTIBAN — rate limiter por usuario ──────────────────────────────────────
-const msgCount    = new Map()
-const SPAM_LIMIT  = 10
-const SPAM_WINDOW = 10_000
-
-function isSpamming(jid) {
-  const now  = Date.now()
-  const data = msgCount.get(jid) || { count: 0, resetAt: now + SPAM_WINDOW }
-  if (now > data.resetAt) {
-    msgCount.set(jid, { count: 1, resetAt: now + SPAM_WINDOW })
-    return false
-  }
-  data.count++
-  msgCount.set(jid, data)
-  return data.count > SPAM_LIMIT
-}
-
 // ─── CARGA DE PLUGINS ─────────────────────────────────────────────────────────
 const plugins = new Map()
 
@@ -204,39 +187,14 @@ async function startBot() {
     }
   })
 
-  // ─── EVENTO: MENSAJES + ANTIBAN ───────────────────────────────────────────
+  // ─── EVENTO: MENSAJES ────────────────────────────────────────────────────
   conn.ev.on('messages.upsert', async ({ messages, type }) => {
     if (type !== 'notify') return
-
     const m = messages[0]
     if (!m?.message) return
-
     const jid = m.key?.remoteJid || ''
-
-    // ── Antiban 1: ignorar status broadcast ──────────────────────────────────
     if (jid === 'status@broadcast') return
-
-    // ── Antiban 2: ignorar newsletters ───────────────────────────────────────
     if (jid.endsWith('@newsletter')) return
-
-    // ── Antiban 3: ignorar listas de difusión ────────────────────────────────
-    if (jid.includes('broadcast')) return
-
-    // ── Antiban 4: ignorar mensajes de sistema ────────────────────────────────
-    const tipos     = Object.keys(m.message || {})
-    const ignorados = ['protocolMessage', 'senderKeyDistributionMessage', 'reactionMessage']
-    if (tipos.every(t => ignorados.includes(t))) return
-
-    // ── Antiban 5: rate limit — anti spam por usuario ─────────────────────────
-    // Solo aplica a mensajes de otros (no fromMe)
-    if (!m.key?.fromMe) {
-      const sender = m.key?.participant || jid
-      if (isSpamming(sender)) {
-        log.warn(`Spam bloqueado: ${sender}`)
-        return
-      }
-    }
-
     try {
       await handler(m, conn, plugins)
     } catch (e) {
