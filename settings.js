@@ -24,7 +24,8 @@ global.prefix = '#'
 global.rcanal = 'https://whatsapp.com/channel/0029Vb85bh7EAKWOM4Zw8N3G'
 
 global.newsletterJid  = '120363408182996815@newsletter'
-global.newsletterName = '⌜ ✦ 𝐌𝐚𝐢 𝐒𝐚𝐤𝐮𝐫𝐚𝐣𝐢𝐦𝐚 ✦ 𝐏𝐫𝐞𝐦𝐢𝐮𝐦 𝐎𝐰𝐧𝐞𝐫 ⌟'
+global.newsletterName = '⌜ ❀ 𝐇𝐢𝐫𝐮𝐤𝐚 ❀ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐏𝐚𝐭𝐫𝐨𝐧 ⌟'
+
 
 // Banner principal (imagen grande para menú)
 global.banner = 'https://causas-files.vercel.app/fl/ni9o.jpg'
