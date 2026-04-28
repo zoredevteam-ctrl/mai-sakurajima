@@ -1,5 +1,3 @@
-import { performance } from 'perf_hooks'
-
 const getBannerBuffer = async (bannerSrc) => {
     if (!bannerSrc) return null
     try {
@@ -10,25 +8,21 @@ const getBannerBuffer = async (bannerSrc) => {
     } catch { return null }
 }
 
-let handler = async (m, { conn, usedPrefix, db }) => {
+let handler = async (m, { conn, usedPrefix }) => {
     const bannerSrc = global.banner || 'https://causas-files.vercel.app/fl/gl13.jpg'
     const canalLink = global.rcanal || ''
-
-    const sender   = m.sender
-    const username = m.pushName || 'Usuario'
+    const sender    = m.sender
+    const username  = m.pushName || 'Usuario'
 
     // ── FECHA Y MOMENTO ───────────────────────────────────────────────────────
-    const now = new Date()
+    const now  = new Date()
     const date = new Intl.DateTimeFormat('es-CO', {
         timeZone: 'America/Bogota',
         day: 'numeric', month: 'long', year: 'numeric'
     }).format(now)
-
-    const hora = new Intl.DateTimeFormat('es-CO', {
-        timeZone: 'America/Bogota', hour: 'numeric', hour12: false
-    }).format(now)
-    const h          = parseInt(hora)
-    const momentDay  = h < 12 ? 'mañana' : h < 18 ? 'tarde' : 'noche'
+    const hora      = new Intl.DateTimeFormat('es-CO', { timeZone: 'America/Bogota', hour: 'numeric', hour12: false }).format(now)
+    const h         = parseInt(hora)
+    const momentDay = h < 12 ? 'mañana' : h < 18 ? 'tarde' : 'noche'
 
     // ── UPTIME ────────────────────────────────────────────────────────────────
     const uptimeSec = Math.floor(process.uptime())
@@ -42,17 +36,18 @@ let handler = async (m, { conn, usedPrefix, db }) => {
     const users    = dbData.users || {}
     const totalreg = Object.keys(users).length
     const userData = users[sender] || {}
+    const coins    = (userData.money || 0).toLocaleString()
+    const level    = userData.level || 1
+    const exp      = (userData.exp  || 0).toLocaleString()
+    const px       = usedPrefix || '#'
 
-    const coins = (userData.money || 0).toLocaleString()
-    const level = userData.level || 1
-    const exp   = (userData.exp   || 0).toLocaleString()
-
-    const px = usedPrefix || '#'
-
-    // ── Verificar si es owner ─────────────────────────────────────────────────
+    // ── Owner check ───────────────────────────────────────────────────────────
     const senderNum = sender.split('@')[0].split(':')[0]
     const owners    = Array.isArray(global.owner) ? global.owner : [global.owner]
-    const esOwner   = owners.some(o => String(o).replace(/\D/g, '') === senderNum)
+    const esOwner   = owners.some(o => {
+        const v = Array.isArray(o) ? o[0] : o
+        return String(v).replace(/\D/g, '') === senderNum
+    })
 
     // ── MENÚ USUARIOS ─────────────────────────────────────────────────────────
     const menuUsuarios = `
@@ -80,8 +75,6 @@ let handler = async (m, { conn, usedPrefix, db }) => {
 ║ 📊 *𝖭𝖨𝖵𝖤𝖫*: ${level}
 ╚═══════════════════════╝
 
-> ⚜️ 𝖴𝗌𝖺 *${px}code* 𝗉𝖺𝗋𝖺 𝗌𝖾𝗋 𝖲𝗎𝖻-𝖡𝗈𝗍.
-
 ╔═══════⩽ ✧ 🪷 ✧ ⩾═══════╗
   「 𝖢 𝖮 𝖬 𝖠 𝖭 𝖣 𝖮 𝖲  𝖦 𝖤 𝖭 𝖤 𝖱 𝖠 𝖫 𝖤 𝖲 」
 ╚═══════⩽ ✧ 🪷 ✧ ⩾═══════╝
@@ -89,6 +82,7 @@ let handler = async (m, { conn, usedPrefix, db }) => {
 ┣ 🪷 *${px}ping* ┊ 𝖫𝖺𝗍𝖾𝗇𝖼𝗂𝖺
 ┣ 🪷 *${px}menu* ┊ 𝖤𝗌𝗍𝖾 𝗆𝖾𝗇𝗎́
 ┣ 🪷 *${px}owner* ┊ 𝖢𝗈𝗇𝗍𝖺𝖼𝗍𝗈
+┣ 🪷 *${px}reg* ┊ 𝖱𝖾𝗀𝗂𝗌𝗍𝗋𝖺𝗋𝗌𝖾
 ┣ 🪷 *${px}ia* ┊ 𝖢𝗁𝖺𝗍 𝖨𝖠
 
 ╔═══════⩽ ✧ 🪷 ✧ ⩾═══════╗
@@ -98,6 +92,8 @@ let handler = async (m, { conn, usedPrefix, db }) => {
 ┣ 🪷 *${px}kick* ┊ 𝖤𝗑𝗉𝗎𝗅𝗌𝖺𝗋
 ┣ 🪷 *${px}add* ┊ 𝖠𝗀𝗋𝖾𝗀𝖺𝗋
 ┣ 🪷 *${px}ban* ┊ 𝖡𝖺𝗇𝖾𝖺𝗋
+┣ 🪷 *${px}welcome on/off* ┊ 𝖡𝗂𝖾𝗇𝗏𝖾𝗇𝗂𝖽𝖺
+┣ 🪷 *${px}goodbye on/off* ┊ 𝖣𝖾𝗌𝗉𝖾𝖽𝗂𝖽𝖺
 
 ╔═══════⩽ ✧ 🪷 ✧ ⩾═══════╗
    「 𝖢 𝖮 𝖬 𝖠 𝖭 𝖣 𝖮 𝖲  𝖯 𝖤 𝖱 𝖥 𝖨 𝖫 」
@@ -106,13 +102,42 @@ let handler = async (m, { conn, usedPrefix, db }) => {
 ┣ 🪷 *${px}perfil* ┊ 𝖵𝖾𝗋 𝗉𝖾𝗋𝖿𝗂𝗅
 ┣ 🪷 *${px}setbio* ┊ 𝖢𝖺𝗆𝖻𝗂𝖺𝗋 𝖻𝗂𝗈
 ┣ 🪷 *${px}setbirthday* ┊ 𝖢𝗎𝗆𝗉𝗅𝖾𝖺𝗇̃𝗈𝗌
+
+╔═══════⩽ ✧ 💰 ✧ ⩾═══════╗
+    「 𝖢 𝖮 𝖬 𝖠 𝖭 𝖣 𝖮 𝖲  𝖤 𝖢 𝖮 𝖭 𝖮 𝖬 𝖨 𝖠 」
+╚═══════⩽ ✧ 💰 ✧ ⩾═══════╝
+⛩️───・──・──・﹕₊˚ ✦・💰
 ┣ 🪷 *${px}bal* ┊ 𝖡𝖺𝗅𝖺𝗇𝖼𝖾
 ┣ 🪷 *${px}chamba* ┊ 𝖳𝗋𝖺𝖻𝖺𝗃𝖺𝗋
+┣ 🪷 *${px}daily* ┊ 𝖱𝖾𝖼𝗈𝗆𝗉𝖾𝗇𝗌𝖺 𝖽𝗂𝖺𝗋𝗂𝖺
+┣ 🪷 *${px}dep* ┊ 𝖣𝖾𝗉𝗈𝗌𝗂𝗍𝖺𝗋
+┣ 🪷 *${px}retirar* ┊ 𝖱𝖾𝗍𝗂𝗋𝖺𝗋
+┣ 🪷 *${px}transferir* ┊ 𝖤𝗇𝗏𝗂𝖺𝗋
+┣ 🪷 *${px}robar* ┊ 𝖱𝗈𝖻𝖺𝗋
+┣ 🪷 *${px}top* ┊ 𝖱𝖺𝗇𝗄𝗂𝗇𝗀
+
+╔═══════⩽ ✧ 🎭 ✧ ⩾═══════╗
+   「 𝖢 𝖮 𝖬 𝖠 𝖭 𝖣 𝖮 𝖲  𝖠 𝖭 𝖨 𝖬 𝖤 」
+╚═══════⩽ ✧ 🎭 ✧ ⩾═══════╝
+⛩️───・──・──・﹕₊˚ ✦・🎭
+┣ 🪷 *${px}kiss* ┊ 𝖡𝖾𝗌𝖺𝗋
+┣ 🪷 *${px}hug* ┊ 𝖠𝖻𝗋𝖺𝗓𝖺𝗋
+┣ 🪷 *${px}pat* ┊ 𝖯𝖺𝗅𝗆𝖾𝖺𝗋
+┣ 🪷 *${px}kill* ┊ 𝖬𝖺𝗍𝖺𝗋
+┣ 🪷 *${px}bite* ┊ 𝖬𝗈𝗋𝖽𝖾𝗋
+┣ 🪷 *${px}cry* ┊ 𝖫𝗅𝗈𝗋𝖺𝗋
+┣ 🪷 *${px}hug* ┊ 𝖠𝖻𝗋𝖺𝗓𝖺𝗋
+┣ 🪷 *${px}happy* ┊ 𝖥𝖾𝗅𝗂𝗓
+┣ 🪷 *${px}angry* ┊ 𝖤𝗇𝗈𝗃𝖺𝖽𝗈
+┣ 🪷 *${px}cuddle* ┊ 𝖠𝖼𝗎𝗋𝗋𝗎𝖼𝖺𝗋𝗌𝖾
+┣ 🪷 *${px}neko* ┊ 𝖭𝖾𝗄𝗈
+┣ 🪷 *${px}cafe* ┊ 𝖢𝖺𝖿𝖾́
+┣ 🪷 *${px}dormir* ┊ 𝖣𝗈𝗋𝗆𝗂𝗋
 ╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝
 
 🪷 𝖯𝗈𝗐𝖾𝗋 𝖻𝗒 ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ XLRS4 🪭`.trim()
 
-    // ── MENÚ OWNER (tiene todo lo anterior + sección owner) ───────────────────
+    // ── MENÚ OWNER ────────────────────────────────────────────────────────────
     const menuOwner = menuUsuarios + `
 
 ╔═══════⩽ ✧ 👑 ✧ ⩾═══════╗
@@ -132,14 +157,14 @@ let handler = async (m, { conn, usedPrefix, db }) => {
 
     try {
         await conn.sendMessage(m.chat, {
-            document: bannerBuffer || Buffer.from(''),
-            mimetype: 'application/pdf',
-            fileName: `⌜ ❀ 𝐇𝐢𝐫𝐮𝐤𝐚 ❀ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐏𝐚𝐭𝐫𝐨𝐧 ⌟`,
+            document:   bannerBuffer || Buffer.from(''),
+            mimetype:   'application/pdf',
+            fileName:   `⌜ ❀ 𝐇𝐢𝐫𝐮𝐤𝐚 ❀ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐏𝐚𝐭𝐫𝐨𝐧 ⌟`,
             fileLength: 99999999999999,
-            pageCount: 1,
-            caption: txt,
+            pageCount:  1,
+            caption:    txt,
             contextInfo: {
-                isForwarded: true,
+                isForwarded:    true,
                 forwardingScore: 99,
                 externalAdReply: {
                     title:                 `⛩️ 𝖧𝖨𝖱𝖴𝖪𝖠 𝖲𝖸𝖲𝖳𝖤𝖬 ⛩️`,
@@ -150,8 +175,8 @@ let handler = async (m, { conn, usedPrefix, db }) => {
                     sourceUrl:             canalLink
                 },
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid:   global.newsletterJid  || '120363408182996815@newsletter',
-                    newsletterName:  global.newsletterName || '⌜ ❀ 𝐇𝐢𝐫𝐮𝐤𝐚 ❀ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐏𝐚𝐭𝐫𝐨𝐧 ⌟',
+                    newsletterJid:   global.newsletterJid   || '120363408182996815@newsletter',
+                    newsletterName:  global.newsletterName  || '⌜ ❀ 𝐇𝐢𝐫𝐮𝐤𝐚 ❀ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐏𝐚𝐭𝐫𝐨𝐧 ⌟',
                     serverMessageId: -1
                 }
             }
