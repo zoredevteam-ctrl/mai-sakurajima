@@ -1,9 +1,8 @@
 // events/welcome.js
-// ── Se activa cuando alguien entra o sale de un grupo ────────────────────────
 
 export const event = 'group-participants.update'
 
-const getBannerThumb = async () => {
+const getThumb = async () => {
     try {
         const res = await fetch(global.icono || global.banner || '')
         if (!res.ok) return null
@@ -17,7 +16,7 @@ const getProfilePic = async (conn, jid) => {
         const res = await fetch(url)
         return Buffer.from(await res.arrayBuffer())
     } catch {
-        return await getBannerThumb()
+        return await getThumb()
     }
 }
 
@@ -26,26 +25,28 @@ export const run = async (conn, update) => {
         const { id, participants, action } = update
         if (!id?.endsWith('@g.us')) return
 
-        // Verificar que el grupo tenga welcome activado
         const { database } = await import('../lib/database.js')
-        const groupData = database.data?.groups?.[id]
-        if (!groupData?.welcome) return
+        const group = database.data?.groups?.[id]
 
-        // Metadata del grupo
-        let groupName = id
-        let groupDesc = ''
+        // ── Verificar si aplica la acción ─────────────────────────────────────
+        if (action === 'add'    && !group?.welcome) return
+        if (action === 'remove' && !group?.goodbye) return
+
+        let groupName    = id
+        let groupDesc    = ''
         let totalMembers = 0
         try {
-            const meta  = await conn.groupMetadata(id)
-            groupName   = meta.subject || id
-            groupDesc   = meta.desc    || ''
+            const meta   = await conn.groupMetadata(id)
+            groupName    = meta.subject || id
+            groupDesc    = meta.desc    || ''
             totalMembers = meta.participants?.length || 0
         } catch {}
 
+        const thumb = await getThumb()
+
         for (const jid of participants) {
-            const num    = jid.split('@')[0]
-            const ppBuf  = await getProfilePic(conn, jid)
-            const thumb  = await getBannerThumb()
+            const num   = jid.split('@')[0]
+            const ppBuf = await getProfilePic(conn, jid)
 
             // ── BIENVENIDA ────────────────────────────────────────────────────
             if (action === 'add') {
@@ -54,7 +55,7 @@ export const run = async (conn, update) => {
                     `╔═══════⩽ ✧ 🪷 ✧ ⩾═══════╗\n` +
                     `   「 𝖡 𝖨 𝖤 𝖭 𝖵 𝖤 𝖭 𝖨 𝖣 𝖠 」\n` +
                     `╚═══════⩽ ✧ 🪷 ✧ ⩾═══════╝\n` +
-                    `┣ 🪷 hola, @${num}! (⁠ ⁠´⁠◡⁠‿⁠◡⁠`⁠)\n` +
+                    `┣ 🪷 hola, @${num}! (⁠ ⁠´⁠◡⁠‿⁠◡⁠\`⁠)\n` +
                     `┣ 🪷 bienvenid@ a *${groupName}*\n` +
                     `┣ 🪷 miembros: *${totalMembers}*\n` +
                     (groupDesc ? `┣ 🪷 ${groupDesc.slice(0, 80)}\n` : '') +
@@ -88,7 +89,7 @@ export const run = async (conn, update) => {
                 const txt =
                     `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
                     `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-                    `      「 𝖧 𝖠 𝖲 𝖳 𝖠  𝖫 𝖴 𝖤 𝖦 𝖮 」\n` +
+                    `  「 𝖧 𝖠 𝖲 𝖳 𝖠  𝖫 𝖴 𝖤 𝖦 𝖮 」\n` +
                     `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
                     `┣ 🪷 @${num} ha salido del grupo\n` +
                     `┣ 🪷 miembros restantes: *${totalMembers - 1}*\n` +
