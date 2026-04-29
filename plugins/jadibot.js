@@ -11,7 +11,6 @@ import {
     useMultiFileAuthState,
     makeCacheableSignalKeyStore,
     fetchLatestBaileysVersion,
-    DisconnectReason,
     Browsers
 } from '@whiskeysockets/baileys'
 import { smsg } from '../lib/simple.js'
@@ -19,7 +18,7 @@ import { smsg } from '../lib/simple.js'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname  = path.dirname(__filename)
 
-const SUBBOT_DIR  = './SubBots'
+const SUBBOT_DIR   = './SubBots'
 const SUBBOT_LIMIT = global.subbotlimit || 20
 
 if (!fs.existsSync(SUBBOT_DIR)) fs.mkdirSync(SUBBOT_DIR, { recursive: true })
@@ -52,7 +51,7 @@ const sendReply = async (conn, m, txt, mentions = []) => {
                 },
                 externalAdReply: {
                     title:                 global.botName || 'Hiruka Celestial MD',
-                    body:                  '🤖 Sub-Bot System',
+                    body:                  '✦ Sub-Bot System',
                     mediaType:             1,
                     thumbnail:             thumb,
                     renderLargerThumbnail: false,
@@ -63,10 +62,25 @@ const sendReply = async (conn, m, txt, mentions = []) => {
     } catch { await m.reply(txt) }
 }
 
-let handler = async (m, { conn, command, args, usedPrefix }) => {
-    const cmd = command.toLowerCase()
+// ── Texto de vinculación QR ───────────────────────────────────────────────────
+const txtQR = `
+⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️
 
-    if (!['jadibot', 'subbot', 'qr', 'code'].includes(cmd)) return
+╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗
+    「 𝖢𝖮𝖭𝖤𝖷𝖨𝖮𝖭 𝖲𝖴𝖡-𝖡𝖮𝖳 𝖰𝖱 」
+╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝
+┣ 🪷 escanea el QR con otro celular
+┣ 🪷 o en la PC para ser Sub-Bot
+┣
+┣ ✦ 1 » tres puntos arriba a la derecha
+┣ ✦ 2 » toca *dispositivos vinculados*
+┣ ✦ 3 » escanea el QR para iniciar sesión
+┣
+┣ 🪷 expira en *45 segundos*
+╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`.trim()
+
+let handler = async (m, { conn, command, args }) => {
+    const cmd = command.toLowerCase()
 
     // ── Cooldown ──────────────────────────────────────────────────────────────
     if (!global.db?.data?.users) global.db = { data: { users: {}, groups: {} } }
@@ -76,9 +90,9 @@ let handler = async (m, { conn, command, args, usedPrefix }) => {
 
     if (Date.now() - lastSub < cooldown) return sendReply(conn, m,
         `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-        `╔═══════⩽ ✧ 🤖 ✧ ⩾═══════╗\n` +
+        `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
         `        「 𝖲𝖴𝖡-𝖡𝖮𝖳 」\n` +
-        `╚═══════⩽ ✧ 🤖 ✧ ⩾═══════╝\n` +
+        `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
         `┣ 🪷 espera *${msToTime(cooldown - (Date.now() - lastSub))}* para volver a conectar\n` +
         `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
     )
@@ -89,9 +103,9 @@ let handler = async (m, { conn, command, args, usedPrefix }) => {
     )
     if (activos.length >= SUBBOT_LIMIT) return sendReply(conn, m,
         `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-        `╔═══════⩽ ✧ 🤖 ✧ ⩾═══════╗\n` +
+        `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
         `        「 𝖲𝖴𝖡-𝖡𝖮𝖳 」\n` +
-        `╚═══════⩽ ✧ 🤖 ✧ ⩾═══════╝\n` +
+        `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
         `┣ 🪷 límite alcanzado: *${activos.length}/${SUBBOT_LIMIT}*\n` +
         `┣ 🪷 espera que alguien se desconecte\n` +
         `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
@@ -99,7 +113,7 @@ let handler = async (m, { conn, command, args, usedPrefix }) => {
 
     const num      = m.sender.split('@')[0]
     const botDir   = path.join(SUBBOT_DIR, num)
-    const usarCode = cmd === 'code' || (args[0] && /code/.test(args[0]))
+    const usarCode = cmd === 'code'
 
     if (!fs.existsSync(botDir)) fs.mkdirSync(botDir, { recursive: true })
 
@@ -108,9 +122,9 @@ let handler = async (m, { conn, command, args, usedPrefix }) => {
 
     await sendReply(conn, m,
         `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-        `╔═══════⩽ ✧ 🤖 ✧ ⩾═══════╗\n` +
+        `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
         `        「 𝖲𝖴𝖡-𝖡𝖮𝖳 」\n` +
-        `╚═══════⩽ ✧ 🤖 ✧ ⩾═══════╝\n` +
+        `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
         `┣ 🪷 iniciando conexión...\n` +
         `┣ 🪷 método: *${usarCode ? 'código de 8 dígitos' : 'código QR'}*\n` +
         `┣ 🪷 espera un momento (⁠✿⁠◡⁠‿⁠◡⁠)\n` +
@@ -146,35 +160,34 @@ async function conectarSubBot({ botDir, m, conn, usarCode }) {
             const imgBuf = await qrcode.toBuffer(qr, { scale: 8 })
             const sent   = await conn.sendMessage(m.chat, {
                 image:   imgBuf,
-                caption:
-                    `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                    `╔═══════⩽ ✧ 📷 ✧ ⩾═══════╗\n` +
-                    `         「 𝖢𝖮𝖣𝖨𝖦𝖮 𝖰𝖱 」\n` +
-                    `╚═══════⩽ ✧ 📷 ✧ ⩾═══════╝\n` +
-                    `┣ 🪷 escanea este QR para conectarte\n` +
-                    `┣ 🪷 *Ajustes → Dispositivos vinculados*\n` +
-                    `┣ 🪷 expira en *45 segundos* ⏱️\n` +
-                    `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
+                caption: txtQR
             }, { quoted: m })
             setTimeout(() => conn.sendMessage(m.chat, { delete: sent.key }).catch(() => {}), 45000)
         }
 
-        // ── Código de vinculación ─────────────────────────────────────────────
+        // ── Código de vinculación — solo el código limpio ─────────────────────
         if (qr && usarCode) {
             try {
                 const code      = await sock.requestPairingCode(m.sender.split('@')[0])
                 const formatted = code?.match(/.{1,4}/g)?.join('-') || code
-                const sent      = await conn.sendMessage(m.chat, {
-                    text:
-                        `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                        `╔═══════⩽ ✧ 🔑 ✧ ⩾═══════╗\n` +
-                        `     「 𝖢𝖮𝖣𝖨𝖦𝖮 𝖲𝖴𝖡-𝖡𝖮𝖳 」\n` +
-                        `╚═══════⩽ ✧ 🔑 ✧ ⩾═══════╝\n` +
-                        `┣ 🪷 tu código: *${formatted}*\n` +
-                        `┣ 🪷 *Ajustes → Dispositivos vinculados*\n` +
-                        `┣ 🪷 expira en *45 segundos* ⏱️\n` +
-                        `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
+
+                // Primero manda el aviso
+                await sendReply(conn, m,
+                    `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
+                    `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
+                    `     「 𝖢𝖮𝖣𝖨𝖦𝖮 𝖲𝖴𝖡-𝖡𝖮𝖳 」\n` +
+                    `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
+                    `┣ 🪷 tu código está en el siguiente mensaje\n` +
+                    `┣ 🪷 *Ajustes → Dispositivos vinculados*\n` +
+                    `┣ 🪷 expira en *45 segundos*\n` +
+                    `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
+                )
+
+                // Luego manda el código solo, sin nada más
+                const sent = await conn.sendMessage(m.chat, {
+                    text: formatted
                 }, { quoted: m })
+
                 setTimeout(() => conn.sendMessage(m.chat, { delete: sent.key }).catch(() => {}), 45000)
             } catch (e) {
                 console.error('[SUBBOT CODE ERROR]', e.message)
@@ -191,9 +204,9 @@ async function conectarSubBot({ botDir, m, conn, usarCode }) {
             await conn.sendMessage(m.chat, {
                 text:
                     `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                    `╔═══════⩽ ✧ ✅ ✧ ⩾═══════╗\n` +
+                    `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
                     `  「 𝖲𝖴𝖡-𝖡𝖮𝖳 𝖢𝖮𝖭𝖤𝖢𝖳𝖠𝖣𝖮 」\n` +
-                    `╚═══════⩽ ✧ ✅ ✧ ⩾═══════╝\n` +
+                    `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
                     `┣ 🪷 nombre: *${nombre}*\n` +
                     `┣ 🪷 ya eres parte de Hiruka ✅\n` +
                     `┣ 🪷 bienvenid@ a la familia (⁠✿⁠◡⁠‿⁠◡⁠)\n` +
@@ -224,9 +237,9 @@ async function conectarSubBot({ botDir, m, conn, usarCode }) {
                 await conn.sendMessage(m.sender, {
                     text:
                         `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                        `╔═══════⩽ ✧ ❌ ✧ ⩾═══════╗\n` +
+                        `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
                         `    「 𝖲𝖤𝖲𝖨𝖮𝖭 𝖢𝖤𝖱𝖱𝖠𝖣𝖠 」\n` +
-                        `╚═══════⩽ ✧ ❌ ✧ ⩾═══════╝\n` +
+                        `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
                         `┣ 🪷 tu sesión fue cerrada\n` +
                         `┣ 🪷 vuelve a conectarte con *#jadibot*\n` +
                         `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
