@@ -1,26 +1,25 @@
 // plugins/jadibot.js
-import { promises as fsPromises, existsSync } from 'fs'
-import path from 'path'
 import fs from 'fs'
+import path from 'path'
 import pino from 'pino'
 import chalk from 'chalk'
-import NodeCache from 'node-cache'
 import qrcode from 'qrcode'
 import * as ws from 'ws'
-
-const {
+import { fileURLToPath } from 'url'
+import {
+    makeWASocket,
     useMultiFileAuthState,
     makeCacheableSignalKeyStore,
-    fetchLatestBaileysVersion
-} = (await import('@whiskeysockets/baileys')).default || await import('@whiskeysockets/baileys')
-
-import { makeWASocket } from '../lib/simple.js'
-import { fileURLToPath } from 'url'
+    fetchLatestBaileysVersion,
+    DisconnectReason,
+    Browsers
+} from '@whiskeysockets/baileys'
+import { smsg } from '../lib/simple.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname  = path.dirname(__filename)
 
-const SUBBOT_DIR = './SubBots'
+const SUBBOT_DIR  = './SubBots'
 const SUBBOT_LIMIT = global.subbotlimit || 20
 
 if (!fs.existsSync(SUBBOT_DIR)) fs.mkdirSync(SUBBOT_DIR, { recursive: true })
@@ -39,11 +38,11 @@ const getThumb = async () => {
     } catch { return null }
 }
 
-const sendReply = async (conn, m, txt) => {
+const sendReply = async (conn, m, txt, mentions = []) => {
     const thumb = await getThumb()
     try {
         await conn.sendMessage(m.chat, {
-            text: txt,
+            text: txt, mentions,
             contextInfo: {
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
@@ -64,64 +63,61 @@ const sendReply = async (conn, m, txt) => {
     } catch { await m.reply(txt) }
 }
 
-// ── Opciones temporales de conexión ──────────────────────────────────────────
-const pendingOpts = {}
-
-// ── Handler principal ─────────────────────────────────────────────────────────
-let handler = async (m, { conn, command, args, usedPrefix, isOwner }) => {
+let handler = async (m, { conn, command, args, usedPrefix }) => {
     const cmd = command.toLowerCase()
 
-    // ── #jadibot (qr o code) ──────────────────────────────────────────────────
-    if (cmd === 'jadibot' || cmd === 'subbot' || cmd === 'qr' || cmd === 'code') {
-        const cooldownKey = `subbot_cd_${m.sender}`
-        if (!global.db) global.db = { data: { users: {} } }
-        const userData = global.db.data.users?.[m.sender] || {}
-        const lastSub  = userData.lastSubBot || 0
-        const cooldown = 2 * 60 * 1000
+    if (!['jadibot', 'subbot', 'qr', 'code'].includes(cmd)) return
 
-        if (Date.now() - lastSub < cooldown) {
-            return sendReply(conn, m,
-                `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                `╔═══════⩽ ✧ 🤖 ✧ ⩾═══════╗\n` +
-                `        「 𝖲𝖴𝖡-𝖡𝖮𝖳 」\n` +
-                `╚═══════⩽ ✧ 🤖 ✧ ⩾═══════╝\n` +
-                `┣ 🪷 espera *${msToTime(cooldown - (Date.now() - lastSub))}* para volver a conectar\n` +
-                `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-            )
-        }
+    // ── Cooldown ──────────────────────────────────────────────────────────────
+    if (!global.db?.data?.users) global.db = { data: { users: {}, groups: {} } }
+    const userData = global.db.data.users[m.sender] || {}
+    const lastSub  = userData.lastSubBot || 0
+    const cooldown = 2 * 60 * 1000
 
-        const activos = global.conns?.filter(c => c.user && c.ws?.socket?.readyState !== ws.CLOSED) || []
-        if (activos.length >= SUBBOT_LIMIT) return sendReply(conn, m,
-            `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-            `╔═══════⩽ ✧ 🤖 ✧ ⩾═══════╗\n` +
-            `        「 𝖲𝖴𝖡-𝖡𝖮𝖳 」\n` +
-            `╚═══════⩽ ✧ 🤖 ✧ ⩾═══════╝\n` +
-            `┣ 🪷 límite alcanzado: *${activos.length}/${SUBBOT_LIMIT}*\n` +
-            `┣ 🪷 espera que alguien se desconecte\n` +
-            `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-        )
+    if (Date.now() - lastSub < cooldown) return sendReply(conn, m,
+        `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
+        `╔═══════⩽ ✧ 🤖 ✧ ⩾═══════╗\n` +
+        `        「 𝖲𝖴𝖡-𝖡𝖮𝖳 」\n` +
+        `╚═══════⩽ ✧ 🤖 ✧ ⩾═══════╝\n` +
+        `┣ 🪷 espera *${msToTime(cooldown - (Date.now() - lastSub))}* para volver a conectar\n` +
+        `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
+    )
 
-        const num    = m.sender.split('@')[0]
-        const botDir = path.join(SUBBOT_DIR, num)
-        if (!fs.existsSync(botDir)) fs.mkdirSync(botDir, { recursive: true })
+    // ── Límite ────────────────────────────────────────────────────────────────
+    const activos = (global.conns || []).filter(c =>
+        c.user && c.ws?.socket?.readyState !== ws.CLOSED
+    )
+    if (activos.length >= SUBBOT_LIMIT) return sendReply(conn, m,
+        `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
+        `╔═══════⩽ ✧ 🤖 ✧ ⩾═══════╗\n` +
+        `        「 𝖲𝖴𝖡-𝖡𝖮𝖳 」\n` +
+        `╚═══════⩽ ✧ 🤖 ✧ ⩾═══════╝\n` +
+        `┣ 🪷 límite alcanzado: *${activos.length}/${SUBBOT_LIMIT}*\n` +
+        `┣ 🪷 espera que alguien se desconecte\n` +
+        `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
+    )
 
-        const usarCode = cmd === 'code' || (args[0] && /code/.test(args[0]))
+    const num      = m.sender.split('@')[0]
+    const botDir   = path.join(SUBBOT_DIR, num)
+    const usarCode = cmd === 'code' || (args[0] && /code/.test(args[0]))
 
-        if (global.db.data.users) global.db.data.users[m.sender] = { ...userData, lastSubBot: Date.now() }
+    if (!fs.existsSync(botDir)) fs.mkdirSync(botDir, { recursive: true })
 
-        await sendReply(conn, m,
-            `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-            `╔═══════⩽ ✧ 🤖 ✧ ⩾═══════╗\n` +
-            `        「 𝖲𝖴𝖡-𝖡𝖮𝖳 」\n` +
-            `╚═══════⩽ ✧ 🤖 ✧ ⩾═══════╝\n` +
-            `┣ 🪷 conectando tu número como sub-bot...\n` +
-            `┣ 🪷 método: *${usarCode ? 'código de 8 dígitos' : 'código QR'}*\n` +
-            `┣ 🪷 espera un momento (⁠✿⁠◡⁠‿⁠◡⁠)\n` +
-            `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-        )
+    if (!global.db.data.users[m.sender]) global.db.data.users[m.sender] = {}
+    global.db.data.users[m.sender].lastSubBot = Date.now()
 
-        await conectarSubBot({ botDir, m, conn, usarCode })
-    }
+    await sendReply(conn, m,
+        `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
+        `╔═══════⩽ ✧ 🤖 ✧ ⩾═══════╗\n` +
+        `        「 𝖲𝖴𝖡-𝖡𝖮𝖳 」\n` +
+        `╚═══════⩽ ✧ 🤖 ✧ ⩾═══════╝\n` +
+        `┣ 🪷 iniciando conexión...\n` +
+        `┣ 🪷 método: *${usarCode ? 'código de 8 dígitos' : 'código QR'}*\n` +
+        `┣ 🪷 espera un momento (⁠✿⁠◡⁠‿⁠◡⁠)\n` +
+        `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
+    )
+
+    await conectarSubBot({ botDir, m, conn, usarCode })
 }
 
 // ── Conectar sub-bot ──────────────────────────────────────────────────────────
@@ -129,19 +125,18 @@ async function conectarSubBot({ botDir, m, conn, usarCode }) {
     const { state, saveCreds } = await useMultiFileAuthState(botDir)
     const { version }          = await fetchLatestBaileysVersion()
 
-    const sock = makeWASocket({
+    let sock = makeWASocket({
         version,
-        logger:              pino({ level: 'silent' }),
-        printQRInTerminal:   false,
+        logger:            pino({ level: 'silent' }),
+        printQRInTerminal: false,
         auth: {
             creds: state.creds,
             keys:  makeCacheableSignalKeyStore(state.keys, pino({ level: 'silent' }))
         },
-        browser:             usarCode ? ['Ubuntu', 'Chrome', '110.0.5585.95'] : ['Hiruka Sub-Bot', 'Chrome', '2.0.0'],
-        generateHighQualityLinkPreview: true
+        browser:                        usarCode ? Browsers.ubuntu('Chrome') : ['Hiruka Sub-Bot', 'Chrome', '2.0.0'],
+        generateHighQualityLinkPreview: true,
+        getMessage:                     async () => ({ conversation: 'Hiruka Celestial MD.' })
     })
-
-    let isInit = true
 
     const onConnection = async (update) => {
         const { connection, lastDisconnect, qr } = update
@@ -166,20 +161,24 @@ async function conectarSubBot({ botDir, m, conn, usarCode }) {
 
         // ── Código de vinculación ─────────────────────────────────────────────
         if (qr && usarCode) {
-            const code      = await sock.requestPairingCode(m.sender.split('@')[0])
-            const formatted = code?.match(/.{1,4}/g)?.join('-') || code
-            const sent      = await conn.sendMessage(m.chat, {
-                text:
-                    `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                    `╔═══════⩽ ✧ 🔑 ✧ ⩾═══════╗\n` +
-                    `       「 𝖢𝖮𝖣𝖨𝖦𝖮 𝖲𝖴𝖡-𝖡𝖮𝖳 」\n` +
-                    `╚═══════⩽ ✧ 🔑 ✧ ⩾═══════╝\n` +
-                    `┣ 🪷 tu código: *${formatted}*\n` +
-                    `┣ 🪷 *Ajustes → Dispositivos vinculados*\n` +
-                    `┣ 🪷 expira en *45 segundos* ⏱️\n` +
-                    `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-            }, { quoted: m })
-            setTimeout(() => conn.sendMessage(m.chat, { delete: sent.key }).catch(() => {}), 45000)
+            try {
+                const code      = await sock.requestPairingCode(m.sender.split('@')[0])
+                const formatted = code?.match(/.{1,4}/g)?.join('-') || code
+                const sent      = await conn.sendMessage(m.chat, {
+                    text:
+                        `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
+                        `╔═══════⩽ ✧ 🔑 ✧ ⩾═══════╗\n` +
+                        `     「 𝖢𝖮𝖣𝖨𝖦𝖮 𝖲𝖴𝖡-𝖡𝖮𝖳 」\n` +
+                        `╚═══════⩽ ✧ 🔑 ✧ ⩾═══════╝\n` +
+                        `┣ 🪷 tu código: *${formatted}*\n` +
+                        `┣ 🪷 *Ajustes → Dispositivos vinculados*\n` +
+                        `┣ 🪷 expira en *45 segundos* ⏱️\n` +
+                        `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
+                }, { quoted: m })
+                setTimeout(() => conn.sendMessage(m.chat, { delete: sent.key }).catch(() => {}), 45000)
+            } catch (e) {
+                console.error('[SUBBOT CODE ERROR]', e.message)
+            }
         }
 
         // ── Conectado ─────────────────────────────────────────────────────────
@@ -193,7 +192,7 @@ async function conectarSubBot({ botDir, m, conn, usarCode }) {
                 text:
                     `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
                     `╔═══════⩽ ✧ ✅ ✧ ⩾═══════╗\n` +
-                    `     「 𝖲𝖴𝖡-𝖡𝖮𝖳 𝖢𝖮𝖭𝖤𝖢𝖳𝖠𝖣𝖮 」\n` +
+                    `  「 𝖲𝖴𝖡-𝖡𝖮𝖳 𝖢𝖮𝖭𝖤𝖢𝖳𝖠𝖣𝖮 」\n` +
                     `╚═══════⩽ ✧ ✅ ✧ ⩾═══════╝\n` +
                     `┣ 🪷 nombre: *${nombre}*\n` +
                     `┣ 🪷 ya eres parte de Hiruka ✅\n` +
@@ -206,8 +205,7 @@ async function conectarSubBot({ botDir, m, conn, usarCode }) {
         // ── Desconectado ──────────────────────────────────────────────────────
         if (connection === 'close') {
             const code = lastDisconnect?.error?.output?.statusCode
-            const num  = path.basename(botDir)
-            console.log(chalk.yellow(`✦ [SUB-BOT] +${num} desconectado. código: ${code}`))
+            console.log(chalk.yellow(`✦ [SUB-BOT] +${path.basename(botDir)} desconectado. código: ${code}`))
 
             const quitarDeConns = () => {
                 if (!Array.isArray(global.conns)) return
@@ -227,12 +225,12 @@ async function conectarSubBot({ botDir, m, conn, usarCode }) {
                     text:
                         `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
                         `╔═══════⩽ ✧ ❌ ✧ ⩾═══════╗\n` +
-                        `      「 𝖲𝖤𝖲𝖨𝖮𝖭 𝖢𝖤𝖱𝖱𝖠𝖣𝖠 」\n` +
+                        `    「 𝖲𝖤𝖲𝖨𝖮𝖭 𝖢𝖤𝖱𝖱𝖠𝖣𝖠 」\n` +
                         `╚═══════⩽ ✧ ❌ ✧ ⩾═══════╝\n` +
                         `┣ 🪷 tu sesión fue cerrada\n` +
                         `┣ 🪷 vuelve a conectarte con *#jadibot*\n` +
                         `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-                })
+                }).catch(() => {})
             } else {
                 quitarDeConns()
             }
@@ -242,17 +240,21 @@ async function conectarSubBot({ botDir, m, conn, usarCode }) {
     sock.ev.on('connection.update', onConnection)
     sock.ev.on('creds.update', saveCreds)
 
-    // Redirigir mensajes al handler principal
-    const { handler: mainHandler } = await import('../handler.js')
+    // ── Redirigir mensajes al handler principal ───────────────────────────────
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
         if (type !== 'notify') return
-        const m2 = messages[0]
-        if (!m2?.message) return
-        if (m2.key?.remoteJid === 'status@broadcast') return
-        try { await mainHandler(m2, sock, global.plugins) } catch {}
+        const raw = messages[0]
+        if (!raw?.message) return
+        if (raw.key?.remoteJid === 'status@broadcast') return
+        if (raw.key?.remoteJid?.endsWith('@newsletter')) return
+        try {
+            const m2 = smsg(sock, raw)
+            const { handler: mainHandler } = await import('../handler.js')
+            await mainHandler(m2, sock, global.plugins)
+        } catch {}
     })
 
-    // Limpiar si no conecta
+    // ── Limpiar si no conecta ─────────────────────────────────────────────────
     setInterval(() => {
         if (!sock.user) {
             try { sock.ws.close() } catch {}
