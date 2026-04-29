@@ -43,7 +43,9 @@ let handler = async (m, { conn, text, isOwner }) => {
         `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
     )
 
-    if (!global.db?.data?.settings) global.db.data.settings = {}
+    if (!global.db) global.db = { data: {} }
+    if (!global.db.data) global.db.data = {}
+    if (!global.db.data.settings) global.db.data.settings = {}
     if (!global.db.data.settings[conn.user.jid]) global.db.data.settings[conn.user.jid] = {}
 
     const settings = global.db.data.settings[conn.user.jid]
