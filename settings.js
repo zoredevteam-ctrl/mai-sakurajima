@@ -31,7 +31,7 @@ global.newsletterName = '⌜ ❀ 𝐇𝐢𝐫𝐮𝐤𝐚 ❀ 𝐂𝐞𝐥𝐞�
 global.banner = 'https://upload.yotsuba.giize.com/u/MjGCqWzw.jpg'
 
 // Icono (imagen pequeña para comandos)
-global.icono  = 'https://causas-files.vercel.app/fl/mmal.jpg'
+global.icono  = 'https://upload.yotsuba.giize.com/u/O2LhscFn.jpg'
 
 // ━─── ✦ ───━  HELPERS DE IMAGEN  ━─── ✦ ───━
 
