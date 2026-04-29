@@ -74,9 +74,9 @@ let handler = async (m, { conn, command, text, isOwner }) => {
         const activos = (global.conns || []).filter(c => c.user && c.ws?.socket?.readyState !== ws.CLOSED)
         if (!activos.length) return sendReply(conn, m,
             `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-            `╔═══════⩽ ✧ 🤖 ✧ ⩾═══════╗\n` +
+            `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
             `       「 𝖲𝖴𝖡-𝖡𝖮𝖳𝖲 」\n` +
-            `╚═══════⩽ ✧ 🤖 ✧ ⩾═══════╝\n` +
+            `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
             `┣ 🪷 no hay sub-bots conectados\n` +
             `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
         )
@@ -85,9 +85,9 @@ let handler = async (m, { conn, command, text, isOwner }) => {
         ).join('\n')
         return sendReply(conn, m,
             `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-            `╔═══════⩽ ✧ 🤖 ✧ ⩾═══════╗\n` +
+            `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
             `       「 𝖲𝖴𝖡-𝖡𝖮𝖳𝖲 」\n` +
-            `╚═══════⩽ ✧ 🤖 ✧ ⩾═══════╝\n` +
+            `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
             `┣ 🪷 activos: *${activos.length}*\n` +
             `┣\n` +
             `${lista}\n` +
@@ -154,9 +154,9 @@ let handler = async (m, { conn, command, text, isOwner }) => {
         global.db.data.groups[m.chat].primaryBot = target
         return sendReply(conn, m,
             `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-            `╔═══════⩽ ✧ 🤖 ✧ ⩾═══════╗\n` +
+            `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
             `     「 𝖡𝖮𝖳 𝖯𝖱𝖨𝖬𝖠𝖱𝖨𝖮 」\n` +
-            `╚═══════⩽ ✧ 🤖 ✧ ⩾═══════╝\n` +
+            `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
             `┣ 🪷 bot primario: *@${target.split('@')[0]}*\n` +
             `┣ 🪷 solo él responderá en este grupo\n` +
             `┣ 🪷 usa *resetbot* para revertir\n` +
@@ -189,7 +189,7 @@ handler.before = async (m, { conn }) => {
                     newsletterJid: global.newsletterJid, serverMessageId: -1, newsletterName: global.newsletterName
                 },
                 externalAdReply: {
-                    title: global.botName || 'Hiruka', body: '🤖 Sub-Bot System',
+                    title: global.botName || 'Hiruka', body: '🪭 Sub-Bot System',
                     mediaType: 1, thumbnail: thumb, renderLargerThumbnail: false, sourceUrl: global.rcanal || ''
                 }
             }
