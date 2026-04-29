@@ -28,7 +28,7 @@ global.newsletterName = '⌜ ❀ 𝐇𝐢𝐫𝐮𝐤𝐚 ❀ 𝐂𝐞𝐥𝐞�
 
 
 // Banner principal (imagen grande para menú)
-global.banner = 'https://causas-files.vercel.app/fl/ni9o.jpg'
+global.banner = 'https://upload.yotsuba.giize.com/u/MjGCqWzw.jpg'
 
 // Icono (imagen pequeña para comandos)
 global.icono  = 'https://causas-files.vercel.app/fl/mmal.jpg'
