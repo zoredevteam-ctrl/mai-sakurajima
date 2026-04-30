@@ -200,7 +200,7 @@ let handler = async (m, { conn, usedPrefix }) => {
                 },
                 forwardedNewsletterMessageInfo: {
                     newsletterJid:   global.newsletterJid  || '120363408182996815@newsletter',
-                    newsletterName:  global.newsletterName || '⌜ ❀ 𝐇𝐢𝐫𝐮𝐤𝐚 ❀ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐏𝐚𝐭𝐫𝐨𝐧 ⌟',
+                    newsletterName:  global.newsletterName || '「✿𝐇𝐢𝐲𝐮𝐤𝐢 এ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐩𝐚𝐭𝐫𝐨𝐧✿」',
                     serverMessageId: -1
                 }
             }
