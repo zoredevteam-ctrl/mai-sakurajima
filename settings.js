@@ -31,7 +31,7 @@ global.newsletterName = '「✿𝐇𝐢𝐲𝐮𝐤𝐢 এ 𝐂𝐞𝐥𝐞𝐬
 global.banner = 'https://upload.yotsuba.giize.com/u/MjGCqWzw.jpg'
 
 // Icono (imagen pequeña para comandos)
-global.icono  = 'https://upload.yotsuba.giize.com/u/O2LhscFn.jpg'
+global.icono  = 'https://upload.yotsuba.giize.com/u/K-WsVHiN.jpg'
 
 // ━─── ✦ ───━  HELPERS DE IMAGEN  ━─── ✦ ───━
 
