@@ -142,18 +142,13 @@ export const handler = async (m, conn, plugins) => {
             if (!isOwnerJid(senderCheck)) return;
         }
 
-        // ── Primary Bot ───────────────────────────────────────────────────────
-        if (m.isGroup) {
-            const groupData  = database.data?.groups?.[m.chat];
-            const primaryBot = groupData?.primaryBot;
-            if (primaryBot) {
-                const botJid     = (conn.user?.id || '').split(':')[0] + '@s.whatsapp.net';
-                const esPrimario = primaryBot.split('@')[0] === botJid.split('@')[0];
-                if (!esPrimario) {
-                    const body           = (m.body || '').trim().toLowerCase();
-                    const cmdsPermitidos = ['#setprimary', '#setbot', '.setprimary', '.setbot', 'resetbot', 'resetprimario'];
-                    if (!cmdsPermitidos.some(c => body.startsWith(c))) return;
-                }
+        // ── Primary ───────────────────────────────────────────────────────────
+        if (m.isGroup && conn._subbotId) {
+            const groupData = database.data?.groups?.[m.chat];
+            if (groupData?.primaryOnly) {
+                const body = (m.body || '').trim().toLowerCase();
+                const isPrimaryCmd = ['#setprimary','#removeprimary','.setprimary','.removeprimary'].some(c => body.startsWith(c));
+                if (!isPrimaryCmd) return;
             }
         }
 
@@ -438,11 +433,9 @@ export const handler = async (m, conn, plugins) => {
 
         // ── Ejecución del plugin ──────────────────────────────────────────────
         try {
-            const fn = typeof cmd === 'function'
-                ? cmd
-                : typeof cmd.run === 'function'
+            const fn = typeof cmd.run === 'function'
                 ? cmd.run.bind(cmd)
-                : null;
+                : typeof cmd === 'function' ? cmd : null;
             if (!fn) throw new TypeError(`Plugin "${commandName}" sin funcion valida`);
 
             await fn(m, {
