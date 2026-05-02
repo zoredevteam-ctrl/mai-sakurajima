@@ -16,7 +16,7 @@ let handler = async (m, { conn, usedPrefix }) => {
 
     // ── FECHA Y MOMENTO ───────────────────────────────────────────────────────
     const now       = new Date()
-    const date      = new Intl.DateTimeFormat('es-CO', { timeZone: 'America/Bogota', day: 'numeric', month: 'long', year: 'numeric' }).format(now)
+    const date      = new Intl.DateTimeFormat('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: '2-digit', year: 'numeric' }).format(now)
     const hora      = new Intl.DateTimeFormat('es-CO', { timeZone: 'America/Bogota', hour: 'numeric', hour12: false }).format(now)
     const h         = parseInt(hora)
     const momentDay = h < 12 ? 'mañana' : h < 18 ? 'tarde' : 'noche'
@@ -38,142 +38,139 @@ let handler = async (m, { conn, usedPrefix }) => {
     const exp      = (userData.exp  || 0).toLocaleString()
     const px       = usedPrefix || '#'
 
-    // ── Owner check ───────────────────────────────────────────────────────────
+    // ── Owner check (Optimizado con Set) ──────────────────────────────────────
     const senderNum = sender.split('@')[0].split(':')[0]
-    const owners    = Array.isArray(global.owner) ? global.owner : [global.owner]
-    const esOwner   = owners.some(o => {
-        const v = Array.isArray(o) ? o[0] : o
-        return String(v).replace(/\D/g, '') === senderNum
-    })
+    const ownersSet = new Set((Array.isArray(global.owner) ? global.owner : [global.owner]).map(o => String(Array.isArray(o) ? o[0] : o).replace(/\D/g, '')))
+    const esOwner   = ownersSet.has(senderNum)
 
     // ── MENÚ USUARIOS ─────────────────────────────────────────────────────────
     const menuUsuarios = `
-⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️
+❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎
 
-🪷 𝖲𝖺𝗅𝗎𝖽𝗈𝗌, ${username}. 
-𝖤𝗌𝗉𝖾𝗋𝗈 𝗊𝗎𝖾 𝗍𝖾𝗇𝗀𝖺𝗌 𝗎𝗇𝖺 𝗅𝗂𝗇𝖽𝖺 ${momentDay}. (⁠✿⁠◡⁠‿⁠◡⁠)
+✦ Saludos, ${username}. 
+Sistema iniciado correctamente esta ${momentDay}.
 
-╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗
-       「 𝖨 𝖭 𝖥 𝖮  𝖲 𝖨 𝖲 𝖳 𝖤 𝖬 𝖠 」
-╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝
-║ 🪭 *𝖢𝖱𝖤𝖠𝖣𝖮𝖱*: ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ
-║ ⛩️ *𝖤𝖲𝖳𝖠𝖣𝖮*: 𝖢𝖾𝗅𝖾𝗌𝗍𝗂𝖺𝗅
-║ ⚜️ *𝖥𝖤𝖢𝖧𝖠*: ${date}
-║ ⏱️ *𝖴𝖯𝖳𝖨𝖬𝖤*: ${uptime}
-║ 👥 *𝖴𝖲𝖴𝖠𝖱𝖨𝖮𝖲*: ${totalreg}
+╔═══════⩽ ✧ ❄︎ ✧ ⩾═══════╗
+       「 I N F O  S I S T E M A 」
+╚═══════⩽ ✧ ❄︎ ✧ ⩾═══════╝
+║ ✦ *Creadores*: Adrien
+║ ✦ *Estado*: Online / Estable
+║ ✦ *Fecha*: ${date}
+║ ✦ *Uptime*: ${uptime}
+║ ✦ *Usuarios*: ${totalreg}
 ╚════════════════════════╝
 
-╔═══════⩽ ✧ 🪷 ✧ ⩾═══════╗
-     「 𝖨 𝖭 𝖥 𝖮  𝖴 𝖲 𝖴 𝖠 𝖱 𝖨 𝖮 」
-╚═══════⩽ ✧ 🪷 ✧ ⩾═══════╝
-║ 👤 *𝖭𝖮𝖬𝖡𝖱𝖤*: ${username}
-║ 🚀 *𝖤𝖷𝖯*: ${exp}
-║ 💲 *𝖢𝖮𝖨𝖭𝖲*: ${coins}
-║ 📊 *𝖭𝖨𝖵𝖤𝖫*: ${level}
+╔═══════⩽ ✧ ❄️ ✧ ⩾═══════╗
+     「 I N F O  U S U A R I O 」
+╚═══════⩽ ✧ ❄️ ✧ ⩾═══════╝
+║ ✦ *Nombre*: ${username}
+║ ✦ *Nivel*: ${level}
+║ ✦ *EXP*: ${exp}
+║ ✦ *Coins*: ${coins}
 ╚═══════════════════════╝
 
-╔═══════⩽ ✧ 🪷 ✧ ⩾═══════╗
-  「 𝖢 𝖮 𝖬 𝖠 𝖭 𝖣 𝖮 𝖲  𝖦 𝖤 𝖭 𝖤 𝖱 𝖠 𝖫 𝖤 𝖲 」
-╚═══════⩽ ✧ 🪷 ✧ ⩾═══════╝
-⛩️───・──・──・﹕₊˚ ✦・🪭
-┣ 🪷 *${px}ping* ┊ 𝖫𝖺𝗍𝖾𝗇𝖼𝗂𝖺
-┣ 🪷 *${px}uptime* ┊ 𝖳𝗂𝖾𝗆𝗉𝗈 𝖺𝖼𝗍𝗂𝗏𝗈
-┣ 🪷 *${px}menu* ┊ 𝖤𝗌𝗍𝖾 𝗆𝖾𝗇𝗎́
-┣ 🪷 *${px}owner* ┊ 𝖢𝗈𝗇𝗍𝖺𝖼𝗍𝗈
-┣ 🪷 *${px}reg* ┊ 𝖱𝖾𝗀𝗂𝗌𝗍𝗋𝖺𝗋𝗌𝖾
-┣ 🪷 *${px}clima* ┊ 𝖢𝗅𝗂𝗆𝖺
-┣ 🪷 *${px}sticker* ┊ 𝖢𝗋𝖾𝖺𝗋 𝗌𝗍𝗂𝖼𝗄𝖾𝗋
-┣ 🪷 *${px}toimg* ┊ 𝖲𝗍𝗂𝖼𝗄𝖾𝗋 → 𝗂𝗆𝖺𝗀𝖾𝗇
+╔═══════⩽ ✧ ⚔︎ ✧ ⩾═══════╗
+  「 C O M A N D O S  G E N E R A L E S 」
+╚═══════⩽ ✧ ⚔︎ ✧ ⩾═══════╝
+╰─➤ ❄︎
+┣ ✦ *${px}ping* ┊ Latencia
+┣ ✦ *${px}uptime* ┊ Tiempo activo
+┣ ✦ *${px}menu* ┊ Este menú
+┣ ✦ *${px}owner* ┊ Contacto
+┣ ✦ *${px}reg* ┊ Registrarse
+┣ ✦ *${px}clima* ┊ Clima
+┣ ✦ *${px}sticker* ┊ Crear sticker
+┣ ✦ *${px}toimg* ┊ Sticker → imagen
 
-╔═══════⩽ ✧ 🪷 ✧ ⩾═══════╗
-    「 𝖢 𝖮 𝖬 𝖠 𝖭 𝖣 𝖮 𝖲  𝖦 𝖱 𝖴 𝖯 𝖮 」
-╚═══════⩽ ✧ 🪷 ✧ ⩾═══════╝
-⛩️───・──・──・﹕₊˚ ✦・🪭
-┣ 🪷 *${px}kick* ┊ 𝖤𝗑𝗉𝗎𝗅𝗌𝖺𝗋
-┣ 🪷 *${px}add* ┊ 𝖠𝗀𝗋𝖾𝗀𝖺𝗋
-┣ 🪷 *${px}ban* ┊ 𝖡𝖺𝗇𝖾𝖺𝗋
-┣ 🪷 *${px}tagall* ┊ 𝖬𝖾𝗇𝖼𝗂𝗈𝗇𝖺𝗋 𝗍𝗈𝖽𝗈𝗌
-┣ 🪷 *${px}grupinfo* ┊ 𝖨𝗇𝖿𝗈 𝗀𝗋𝗎𝗉𝗈
-┣ 🪷 *${px}antilink* ┊ 𝖠𝗇𝗍𝗂𝗅𝗂𝗇𝗄
-┣ 🪷 *${px}warn* ┊ 𝖠𝖽𝗏𝖾𝗋𝗍𝗂𝗋
-┣ 🪷 *${px}hidemensaje* ┊ 𝖡𝗈𝗋𝗋𝖺𝗋 𝗆𝖾𝗇𝗌𝖺𝗃𝖾
-┣ 🪷 *${px}welcome on/off* ┊ 𝖡𝗂𝖾𝗇𝗏𝖾𝗇𝗂𝖽𝖺
-┣ 🪷 *${px}goodbye on/off* ┊ 𝖣𝖾𝗌𝗉𝖾𝖽𝗂𝖽𝖺
+╔═══════⩽ ✧ ❄︎ ✧ ⩾═══════╗
+    「 C O M A N D O S  G R U P O 」
+╚═══════⩽ ✧ ❄︎ ✧ ⩾═══════╝
+╰─➤ ❄︎
+┣ ✦ *${px}kick* ┊ Expulsar
+┣ ✦ *${px}add* ┊ Agregar
+┣ ✦ *${px}ban* ┊ Banear
+┣ ✦ *${px}tagall* ┊ Mencionar todos
+┣ ✦ *${px}grupinfo* ┊ Info grupo
+┣ ✦ *${px}antilink* ┊ Antilink
+┣ ✦ *${px}warn* ┊ Advertir
+┣ ✦ *${px}hidemensaje* ┊ Borrar mensaje
+┣ ✦ *${px}welcome on/off* ┊ Bienvenida
+┣ ✦ *${px}goodbye on/off* ┊ Despedida
 
-╔═══════⩽ ✧ 🪷 ✧ ⩾═══════╗
-   「 𝖢 𝖮 𝖬 𝖠 𝖭 𝖣 𝖮 𝖲  𝖯 𝖤 𝖱 𝖥 𝖨 𝖫 」
-╚═══════⩽ ✧ 🪷 ✧ ⩾═══════╝
-⛩️───・──・──・﹕₊˚ ✦・🪭
-┣ 🪷 *${px}perfil* ┊ 𝖵𝖾𝗋 𝗉𝖾𝗋𝖿𝗂𝗅
-┣ 🪷 *${px}userinfo* ┊ 𝖨𝗇𝖿𝗈 𝗎𝗌𝗎𝖺𝗋𝗂𝗈
-┣ 🪷 *${px}setbio* ┊ 𝖢𝖺𝗆𝖻𝗂𝖺𝗋 𝖻𝗂𝗈
-┣ 🪷 *${px}setbirthday* ┊ 𝖢𝗎𝗆𝗉𝗅𝖾𝖺𝗇̃𝗈𝗌
+╔═══════⩽ ✧ ❄️ ✧ ⩾═══════╗
+   「 C O M A N D O S  P E R F I L 」
+╚═══════⩽ ✧ ❄️ ✧ ⩾═══════╝
+╰─➤ ❄︎
+┣ ✦ *${px}perfil* ┊ Ver perfil
+┣ ✦ *${px}userinfo* ┊ Info usuario
+┣ ✦ *${px}setbio* ┊ Cambiar bio
+┣ ✦ *${px}setbirthday* ┊ Cumpleaños
 
-╔═══════⩽ ✧ 💰 ✧ ⩾═══════╗
-    「 𝖢 𝖮 𝖬 𝖠 𝖭 𝖣 𝖮 𝖲  𝖤 𝖢 𝖮 𝖭 𝖮 𝖬 𝖨 𝖠 」
-╚═══════⩽ ✧ 💰 ✧ ⩾═══════╝
-⛩️───・──・──・﹕₊˚ ✦・💰
-┣ 🪷 *${px}bal* ┊ 𝖡𝖺𝗅𝖺𝗇𝖼𝖾
-┣ 🪷 *${px}chamba* ┊ 𝖳𝗋𝖺𝖻𝖺𝗃𝖺𝗋
-┣ 🪷 *${px}daily* ┊ 𝖱𝖾𝖼𝗈𝗆𝗉𝖾𝗇𝗌𝖺 𝖽𝗂𝖺𝗋𝗂𝖺
-┣ 🪷 *${px}dep* ┊ 𝖣𝖾𝗉𝗈𝗌𝗂𝗍𝖺𝗋
-┣ 🪷 *${px}retirar* ┊ 𝖱𝖾𝗍𝗂𝗋𝖺𝗋
-┣ 🪷 *${px}transferir* ┊ 𝖤𝗇𝗏𝗂𝖺𝗋
-┣ 🪷 *${px}robar* ┊ 𝖱𝗈𝖻𝖺𝗋
-┣ 🪷 *${px}top* ┊ 𝖱𝖺𝗇𝗄𝗂𝗇𝗀
+╔═══════⩽ ✧ ❄︎ ✧ ⩾═══════╗
+    「 E C O N O M Í A 」
+╚═══════⩽ ✧ ❄︎ ✧ ⩾═══════╝
+╰─➤ ❄︎
+┣ ✦ *${px}bal* ┊ Balance
+┣ ✦ *${px}chamba* ┊ Trabajar
+┣ ✦ *${px}daily* ┊ Recompensa diaria
+┣ ✦ *${px}dep* ┊ Depositar
+┣ ✦ *${px}retirar* ┊ Retirar
+┣ ✦ *${px}transferir* ┊ Enviar
+┣ ✦ *${px}robar* ┊ Robar
+┣ ✦ *${px}top* ┊ Ranking
 
-╔═══════⩽ ✧ 💞 ✧ ⩾═══════╗
-    「 𝖢 𝖮 𝖬 𝖠 𝖭 𝖣 𝖮 𝖲  𝖲 𝖮 𝖢 𝖨 𝖠 𝖫 」
-╚═══════⩽ ✧ 💞 ✧ ⩾═══════╝
-⛩️───・──・──・﹕₊˚ ✦・💞
-┣ 🪷 *${px}casar* ┊ 𝖢𝖺𝗌𝖺𝗋𝗌𝖾
-┣ 🪷 *${px}divorcio* ┊ 𝖣𝗂𝗏𝗈𝗋𝖼𝗂𝖺𝗋𝗌𝖾
-┣ 🪷 *${px}adoptar* ┊ 𝖠𝖽𝗈𝗉𝗍𝖺𝗋
+╔═══════⩽ ✧ ❄︎ ✧ ⩾═══════╗
+    「 S O C I A L 」
+╚═══════⩽ ✧ ❄︎ ✧ ⩾═══════╝
+╰─➤ ❄︎
+┣ ✦ *${px}casar* ┊ Casarse
+┣ ✦ *${px}divorcio* ┊ Divorciarse
+┣ ✦ *${px}adoptar* ┊ Adoptar
 
-╔═══════⩽ ✧ 🎮 ✧ ⩾═══════╗
-    「 𝖢 𝖮 𝖬 𝖠 𝖭 𝖣 𝖮 𝖲  𝖩 𝖴 𝖤 𝖦 𝖮 𝖲 」
-╚═══════⩽ ✧ 🎮 ✧ ⩾═══════╝
-⛩️───・──・──・﹕₊˚ ✦・🎮
-┣ 🪷 *${px}8ball* ┊ 𝖡𝗈𝗅𝖺 𝗆𝖺́𝗀𝗂𝖼𝖺
-┣ 🪷 *${px}dado* ┊ 𝖳𝗂𝗋𝖺𝗋 𝖽𝖺𝖽𝗈
-┣ 🪷 *${px}ruleta* ┊ 𝖱𝗎𝗅𝖾𝗍𝖺
-┣ 🪷 *${px}trivia* ┊ 𝖳𝗋𝗂𝗏𝗂𝖺
-┣ 🪷 *${px}adivinanza* ┊ 𝖠𝖽𝗂𝗏𝗂𝗇𝖺𝗇𝗓𝖺
+╔═══════⩽ ✧ ❄︎ ✧ ⩾═══════╗
+    「 J U E G O S 」
+╚═══════⩽ ✧ ❄︎ ✧ ⩾═══════╝
+╰─➤ ❄︎
+┣ ✦ *${px}8ball* ┊ Bola mágica
+┣ ✦ *${px}dado* ┊ Tirar dado
+┣ ✦ *${px}ruleta* ┊ Ruleta
+┣ ✦ *${px}trivia* ┊ Trivia
+┣ ✦ *${px}adivinanza* ┊ Adivinanza
 
-╔═══════⩽ ✧ 🎭 ✧ ⩾═══════╗
-   「 𝖢 𝖮 𝖬 𝖠 𝖭 𝖣 𝖮 𝖲  𝖠 𝖭 𝖨 𝖬 𝖤 」
-╚═══════⩽ ✧ 🎭 ✧ ⩾═══════╝
-⛩️───・──・──・﹕₊˚ ✦・🎭
-┣ 🪷 *${px}kiss* ┊ 𝖡𝖾𝗌𝖺𝗋
-┣ 🪷 *${px}hug* ┊ 𝖠𝖻𝗋𝖺𝗓𝖺𝗋
-┣ 🪷 *${px}pat* ┊ 𝖯𝖺𝗅𝗆𝖾𝖺𝗋
-┣ 🪷 *${px}kill* ┊ 𝖬𝖺𝗍𝖺𝗋
-┣ 🪷 *${px}bite* ┊ 𝖬𝗈𝗋𝖽𝖾𝗋
-┣ 🪷 *${px}cry* ┊ 𝖫𝗅𝗈𝗋𝖺𝗋
-┣ 🪷 *${px}happy* ┊ 𝖥𝖾𝗅𝗂𝗓
-┣ 🪷 *${px}angry* ┊ 𝖤𝗇𝗈𝗃𝖺𝖽𝗈
-┣ 🪷 *${px}cuddle* ┊ 𝖠𝖼𝗎𝗋𝗋𝗎𝖼𝖺𝗋𝗌𝖾
-┣ 🪷 *${px}neko* ┊ 𝖭𝖾𝗄𝗈
-┣ 🪷 *${px}cafe* ┊ 𝖢𝖺𝖿𝖾́
-┣ 🪷 *${px}dormir* ┊ 𝖣𝗈𝗋𝗆𝗂𝗋
-┣ 🪷 *${px}push* ┊ 𝖤𝗆𝗉𝗎𝗃𝖺𝗋
+╔═══════⩽ ✧ ❄︎ ✧ ⩾═══════╗
+   「 R E A C C I O N E S 」
+╚═══════⩽ ✧ ❄︎ ✧ ⩾═══════╝
+╰─➤ ❄︎
+┣ ✦ *${px}kiss* ┊ Besar
+┣ ✦ *${px}hug* ┊ Abrazar
+┣ ✦ *${px}pat* ┊ Palmear
+┣ ✦ *${px}kill* ┊ Matar
+┣ ✦ *${px}bite* ┊ Morder
+┣ ✦ *${px}cry* ┊ Llorar
+┣ ✦ *${px}happy* ┊ Feliz
+┣ ✦ *${px}angry* ┊ Enojado
+┣ ✦ *${px}cuddle* ┊ Acurrucarse
+┣ ✦ *${px}neko* ┊ Neko
+┣ ✦ *${px}cafe* ┊ Café
+┣ ✦ *${px}dormir* ┊ Dormir
+┣ ✦ *${px}push* ┊ Empujar
 ╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝
 
-🪷 𝖯𝗈𝗐𝖾𝗋 𝖻𝗒 ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ XLRS4 🪭`.trim()
+✦ Powered by Adrien | XLR4-Security ✦`.trim()
 
     // ── MENÚ OWNER ────────────────────────────────────────────────────────────
     const menuOwner = menuUsuarios + `
 
-╔═══════⩽ ✧ 👑 ✧ ⩾═══════╗
-    「 𝖢 𝖮 𝖬 𝖠 𝖭 𝖣 𝖮 𝖲  𝖮 𝖶 𝖭 𝖤 𝖱 」
-╚═══════⩽ ✧ 👑 ✧ ⩾═══════╝
-⛩️───・──・──・﹕₊˚ ✦・👑
-┣ 👑 *${px}addpremium* ┊ 𝖣𝖺𝗋 𝗉𝗋𝖾𝗆𝗂𝗎𝗆
-┣ 👑 *${px}delpremium* ┊ 𝖰𝗎𝗂𝗍𝖺𝗋 𝗉𝗋𝖾𝗆𝗂𝗎𝗆
-┣ 👑 *${px}listpremium* ┊ 𝖵𝖾𝗋 𝗉𝗋𝖾𝗆𝗂𝗎𝗆𝗌
-┣ 👑 *${px}addowner* ┊ 𝖠𝗇̃𝖺𝖽𝗂𝗋 𝗈𝗐𝗇𝖾𝗋
-┣ 👑 *${px}delowner* ┊ 𝖰𝗎𝗂𝗍𝖺𝗋 𝗈𝗐𝗇𝖾𝗋
-┣ 👑 *${px}listowner* ┊ 𝖵𝖾𝗋 𝗈𝗐𝗇𝖾𝗋𝗌
+╔═══════⩽ ✧ ❄︎ ✧ ⩾═══════╗
+    「 C O M A N D O S  O W N E R 」
+╚═══════⩽ ✧ ❄︎ ✧ ⩾═══════╝
+╰─➤ ❄︎
+┣ ✦ *${px}addpremium* ┊ Dar premium
+┣ ✦ *${px}delpremium* ┊ Quitar premium
+┣ ✦ *${px}listpremium* ┊ Ver premiums
+┣ ✦ *${px}addowner* ┊ Añadir owner
+┣ ✦ *${px}delowner* ┊ Quitar owner
+┣ ✦ *${px}listowner* ┊ Ver owners
 ╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
 
     const txt          = esOwner ? menuOwner : menuUsuarios
@@ -183,7 +180,7 @@ let handler = async (m, { conn, usedPrefix }) => {
         await conn.sendMessage(m.chat, {
             document:    bannerBuffer || Buffer.from(''),
             mimetype:    'application/pdf',
-            fileName:    `⌜ ❀ 𝐇𝐢𝐫𝐮𝐤𝐚 ❀ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐏𝐚𝐭𝐫𝐨𝐧 ⌟`,
+            fileName:    `⌜ ❄︎ 𝐇𝐢𝐲𝐮𝐤𝐢 𝐒𝐲𝐬𝐭𝐞𝐦 ❄︎ ⌟`,
             fileLength:  99999999999999,
             pageCount:   1,
             caption:     txt,
@@ -191,8 +188,8 @@ let handler = async (m, { conn, usedPrefix }) => {
                 isForwarded:     true,
                 forwardingScore: 99,
                 externalAdReply: {
-                    title:                 `⛩️ 𝖧𝖨𝖱𝖴𝖪𝖠 𝖲𝖸𝖲𝖳𝖤𝖬 ⛩️`,
-                    body:                  `🪷 𝖣𝖾𝗏𝖾𝗅𝗈𝗉𝖾𝖽 𝖻𝗒 ˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ`,
+                    title:                 `❄︎ 𝖧𝖨𝖸𝖴𝖪𝖨 𝖲𝖸𝖲𝖳𝖤𝖬 ❄︎`,
+                    body:                  `✦ XLR4-Security Protocol`,
                     mediaType:             1,
                     thumbnail:             bannerBuffer,
                     renderLargerThumbnail: true,
@@ -200,7 +197,7 @@ let handler = async (m, { conn, usedPrefix }) => {
                 },
                 forwardedNewsletterMessageInfo: {
                     newsletterJid:   global.newsletterJid  || '120363408182996815@newsletter',
-                    newsletterName:  global.newsletterName || '「✿𝐇𝐢𝐲𝐮𝐤𝐢 এ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐩𝐚𝐭𝐫𝐨𝐧✿」',
+                    newsletterName:  global.newsletterName || '「 ❄︎ 𝐇𝐢𝐲𝐮𝐤𝐢 𝐒𝐲𝐬𝐭𝐞𝐦 ❄︎ 」',
                     serverMessageId: -1
                 }
             }
