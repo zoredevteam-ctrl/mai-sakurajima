@@ -1,9 +1,8 @@
 // plugins/jadibot-manage.js
-// ── Gestión de sub-bots: token, lista, eliminar, pausar, primario ─────────────
-
 import fs from 'fs'
 import path from 'path'
 import * as ws from 'ws'
+import { database } from '../lib/database.js'
 
 const SUBBOT_DIR = './SubBots'
 
@@ -15,7 +14,7 @@ const getThumb = async () => {
     } catch { return null }
 }
 
-const sendReply = async (conn, m, txt, mentions = []) => {
+const send = async (conn, m, txt, mentions = []) => {
     const thumb = await getThumb()
     try {
         await conn.sendMessage(m.chat, {
@@ -28,8 +27,8 @@ const sendReply = async (conn, m, txt, mentions = []) => {
                     newsletterName:  global.newsletterName
                 },
                 externalAdReply: {
-                    title:                 global.botName || 'Hiruka Celestial MD',
-                    body:                  '🤖 Sub-Bot System',
+                    title:                 global.botName || 'Hiyuki',
+                    body:                  global.newsletterName || '',
                     mediaType:             1,
                     thumbnail:             thumb,
                     renderLargerThumbnail: false,
@@ -44,123 +43,74 @@ let handler = async (m, { conn, command, text, isOwner }) => {
     const cmd = command.toLowerCase()
     const num = m.sender.split('@')[0]
 
-    // ── #token — obtener token de sesión ──────────────────────────────────────
+    // ── #token ────────────────────────────────────────────────────────────────
     if (cmd === 'token') {
         const credsPath = path.join(SUBBOT_DIR, num, 'creds.json')
-        if (!fs.existsSync(credsPath)) return sendReply(conn, m,
-            `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-            `╔═══════⩽ ✧ 🔑 ✧ ⩾═══════╗\n` +
-            `           「 𝖳𝖮𝖪𝖤𝖭 」\n` +
-            `╚═══════⩽ ✧ 🔑 ✧ ⩾═══════╝\n` +
-            `┣ 🪷 no tienes sesión activa\n` +
-            `┣ 🪷 usa *#jadibot* para conectarte\n` +
-            `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
+        if (!fs.existsSync(credsPath)) return send(conn, m,
+            `⟪❄︎⟫ no tienes sesión activa\n✎ usa *#jadibot* para conectarte❄︎`
         )
         const token = Buffer.from(fs.readFileSync(credsPath, 'utf-8')).toString('base64')
-        await sendReply(conn, m,
-            `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-            `╔═══════⩽ ✧ 🔑 ✧ ⩾═══════╗\n` +
-            `           「 𝖳𝖮𝖪𝖤𝖭 」\n` +
-            `╚═══════⩽ ✧ 🔑 ✧ ⩾═══════╝\n` +
-            `┣ 🪷 no compartas esto con nadie (⁠¬⁠_⁠¬⁠)\n` +
-            `┣ 🪷 tu token está en el siguiente mensaje\n` +
-            `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-        )
+        await send(conn, m, `⟪❄︎⟫ no compartas tu token con nadie❄︎`)
         await conn.sendMessage(m.chat, { text: token }, { quoted: m })
     }
 
-    // ── #bots — ver sub-bots activos ──────────────────────────────────────────
+    // ── #bots ─────────────────────────────────────────────────────────────────
     if (cmd === 'bots' || cmd === 'subbots') {
         const activos = (global.conns || []).filter(c => c.user && c.ws?.socket?.readyState !== ws.CLOSED)
-        if (!activos.length) return sendReply(conn, m,
-            `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-            `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-            `       「 𝖲𝖴𝖡-𝖡𝖮𝖳𝖲 」\n` +
-            `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-            `┣ 🪷 no hay sub-bots conectados\n` +
-            `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-        )
+        if (!activos.length) return send(conn, m, `⟪❄︎⟫ no hay sub-bots conectados❄︎`)
         const lista = activos.map((c, i) =>
-            `┣ 🤖 *${i + 1}.* ${c.user.name || 'Sin nombre'} — +${c.user.id?.split('@')[0]}`
+            `✎ ${i + 1}. *${c.user.name || 'Sin nombre'}* — +${c.user.id?.split('@')[0]}`
         ).join('\n')
-        return sendReply(conn, m,
-            `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-            `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-            `       「 𝖲𝖴𝖡-𝖡𝖮𝖳𝖲 」\n` +
-            `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-            `┣ 🪷 activos: *${activos.length}*\n` +
-            `┣\n` +
-            `${lista}\n` +
-            `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-        )
+        return send(conn, m, `⟪❄︎⟫ sub-bots activos: *${activos.length}*\n${lista}❄︎`)
     }
 
-    // ── #deletesub — eliminar sesión ──────────────────────────────────────────
+    // ── #deletesub ────────────────────────────────────────────────────────────
     if (cmd === 'deletesub' || cmd === 'delsub') {
         const botDir = path.join(SUBBOT_DIR, num)
-        if (!fs.existsSync(botDir)) return sendReply(conn, m,
-            `┣ 🪷 no tienes sesión activa para eliminar`
-        )
+        if (!fs.existsSync(botDir)) return send(conn, m, `⟪❄︎⟫ no tienes sesión activa❄︎`)
         try {
             fs.rmSync(botDir, { recursive: true, force: true })
             await m.react('🗑️')
-            return sendReply(conn, m,
-                `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                `╔═══════⩽ ✧ 🗑️ ✧ ⩾═══════╗\n` +
-                `      「 𝖲𝖤𝖲𝖨𝖮𝖭 𝖤𝖫𝖨𝖬𝖨𝖭𝖠𝖣𝖠 」\n` +
-                `╚═══════⩽ ✧ 🗑️ ✧ ⩾═══════╝\n` +
-                `┣ 🪷 tu sesión fue eliminada correctamente ✅\n` +
-                `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-            )
+            return send(conn, m, `⟪❄︎⟫ sesión eliminada correctamente❄︎`)
         } catch (e) {
-            return sendReply(conn, m, `┣ 🪷 error al eliminar sesión: ${e.message}`)
+            return send(conn, m, `⟪❄︎⟫ error al eliminar: ${e.message}❄︎`)
         }
     }
 
-    // ── #pausesub — pausar sub-bot ────────────────────────────────────────────
+    // ── #pausesub ─────────────────────────────────────────────────────────────
     if (cmd === 'pausesub' || cmd === 'stopsub') {
-        if (global.conn?.user?.jid === conn.user?.jid) return sendReply(conn, m,
-            `┣ 🪷 no puedes pausar el bot principal (⁠¬⁠_⁠¬⁠)`
+        if (global.conn?.user?.jid === conn.user?.jid) return send(conn, m,
+            `⟪❄︎⟫ no puedes pausar el bot principal❄︎`
         )
-        await sendReply(conn, m,
-            `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-            `╔═══════⩽ ✧ 🔕 ✧ ⩾═══════╗\n` +
-            `     「 𝖲𝖴𝖡-𝖡𝖮𝖳 𝖯𝖠𝖴𝖲𝖠𝖣𝖮 」\n` +
-            `╚═══════⩽ ✧ 🔕 ✧ ⩾═══════╝\n` +
-            `┣ 🪷 *${conn.user?.name || 'Sub-Bot'}* fue pausado\n` +
-            `┣ 🪷 hasta luego (⁠˘⁠︶⁠˘⁠)⁠.⁠｡⁠*⁠♡\n` +
-            `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-        )
+        await send(conn, m, `⟪❄︎⟫ *${conn.user?.name || 'Sub-Bot'}* pausado. hasta luego❄︎`)
         try { conn.ws.close() } catch {}
     }
 
-    // ── #setprimary — establecer bot primario ─────────────────────────────────
+    // ── #setprimary ───────────────────────────────────────────────────────────
     if (cmd === 'setprimary' || cmd === 'setbot') {
-        if (!m.isGroup) return sendReply(conn, m,
-            `┣ 🪷 este comando solo funciona en *grupos*`
-        )
+        if (!m.isGroup) return send(conn, m, `⟪❄︎⟫ solo funciona en grupos❄︎`)
+
         const target = m.mentionedJid?.[0] || m.quoted?.sender
             || (text ? text.replace(/\D/g, '') + '@s.whatsapp.net' : null)
-        if (!target) return sendReply(conn, m,
-            `┣ 🪷 menciona o responde al bot que quieres establecer como primario`
-        )
-        if (!global.db?.data?.groups) global.db.data.groups = {}
-        if (!global.db.data.groups[m.chat]) global.db.data.groups[m.chat] = {}
 
-        if (global.db.data.groups[m.chat].primaryBot === target) return sendReply(conn, m,
-            `┣ 🪷 @${target.split('@')[0]} ya es el bot primario`,
-            [target]
+        if (!target) return send(conn, m,
+            `⟪❄︎⟫ menciona o responde al bot que quieres como primario❄︎`
         )
-        global.db.data.groups[m.chat].primaryBot = target
-        return sendReply(conn, m,
-            `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-            `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-            `     「 𝖡𝖮𝖳 𝖯𝖱𝖨𝖬𝖠𝖱𝖨𝖮 」\n` +
-            `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-            `┣ 🪷 bot primario: *@${target.split('@')[0]}*\n` +
-            `┣ 🪷 solo él responderá en este grupo\n` +
-            `┣ 🪷 usa *resetbot* para revertir\n` +
-            `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`,
+
+        // Usar database en vez de global.db para consistencia
+        if (!database.data.groups) database.data.groups = {}
+        if (!database.data.groups[m.chat]) database.data.groups[m.chat] = {}
+
+        const targetNum = target.split('@')[0]
+
+        if (database.data.groups[m.chat].primaryBot?.split('@')[0] === targetNum) return send(conn, m,
+            `⟪❄︎⟫ @${targetNum} ya es el bot primario❄︎`, [target]
+        )
+
+        database.data.groups[m.chat].primaryBot = target
+
+        return send(conn, m,
+            `⟪❄︎⟫ bot primario establecido: *@${targetNum}*\n✎ usa *resetbot* para revertir❄︎`,
             [target]
         )
     }
@@ -172,25 +122,29 @@ handler.before = async (m, { conn }) => {
     const body = (m.body || '').trim().toLowerCase()
     if (!['resetbot', 'resetprimario'].includes(body)) return
 
+    if (!database.data.groups) database.data.groups = {}
+    if (!database.data.groups[m.chat]) return
+
+    database.data.groups[m.chat].primaryBot = null
+
     const thumb = await getThumb()
-    if (!global.db?.data?.groups?.[m.chat]) return
-    global.db.data.groups[m.chat].primaryBot = null
     try {
         await conn.sendMessage(m.chat, {
-            text:
-                `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n` +
-                `╔═══════⩽ ✧ ✅ ✧ ⩾═══════╗\n` +
-                `        「 𝖱𝖤𝖲𝖤𝖳 𝖡𝖮𝖳 」\n` +
-                `╚═══════⩽ ✧ ✅ ✧ ⩾═══════╝\n` +
-                `┣ 🪷 todos los bots responden nuevamente ✅\n` +
-                `╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`,
-            contextInfo: { isForwarded: true,
+            text: `⟪❄︎⟫ bot primario eliminado. todos los bots responden nuevamente❄︎`,
+            contextInfo: {
+                isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: global.newsletterJid, serverMessageId: -1, newsletterName: global.newsletterName
+                    newsletterJid:   global.newsletterJid,
+                    serverMessageId: -1,
+                    newsletterName:  global.newsletterName
                 },
                 externalAdReply: {
-                    title: global.botName || 'Hiruka', body: '🪭 Sub-Bot System',
-                    mediaType: 1, thumbnail: thumb, renderLargerThumbnail: false, sourceUrl: global.rcanal || ''
+                    title:                 global.botName || 'Hiyuki',
+                    body:                  global.newsletterName || '',
+                    mediaType:             1,
+                    thumbnail:             thumb,
+                    renderLargerThumbnail: false,
+                    sourceUrl:             global.rcanal || ''
                 }
             }
         }, { quoted: m })
