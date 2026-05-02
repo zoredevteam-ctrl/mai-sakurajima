@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://causas-files.vercel.app/fl/3bds.jpg" alt="Hiruka Celestial MD" width="100%"/>
+  <img src="https://upload.yotsuba.giize.com/u/jbHoJtR2.jpg" alt="Hiruka Celestial MD" width="100%"/>
 
   <h1>✦ Hiruka Celestial MD</h1>
   <p><i>WhatsApp Bot Premium — Z0RT SYSTEMS</i></p>
