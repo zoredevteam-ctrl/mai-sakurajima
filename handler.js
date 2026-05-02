@@ -70,8 +70,8 @@ const similarity = (a, b) => {
     return Math.floor((matches / Math.max(a.length, b.length)) * 100);
 };
 
-// ── Reply estilo HIRUKA con newsletter context ────────────────────────────────
-const hirukaReply = async (conn, m, txt) => {
+// ── Reply estilo HIYUKI con newsletter context ────────────────────────────────
+const hiyukiReply = async (conn, m, txt) => {
     try {
         const thumb = await global.getIconThumb?.() || null;
         const ctx   = global.getNewsletterCtx?.(thumb) || {};
@@ -81,17 +81,11 @@ const hirukaReply = async (conn, m, txt) => {
     }
 };
 
-// ── Cabecera HIRUKA ───────────────────────────────────────────────────────────
-const H = `⛩️  ──  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  𝐒 𝐘 𝐒 𝐓 𝐄 𝐌  ──  ⛩️\n\n`;
-const F = `\n╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`;
-
+// ── Plantilla Simple HIYUKI ───────────────────────────────────────────────────
 const box = (title, lines) =>
-    H +
-    `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-    `  「 ${title} 」\n` +
-    `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-    lines.map(l => `┣ 🪷 ${l}`).join('\n') +
-    F;
+    `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
+    `✦ [ ${title} ]\n` +
+    lines.map(l => `  ⟡ ${l}`).join('\n');
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -267,22 +261,14 @@ export const handler = async (m, conn, plugins) => {
                 .sort((a, b) => b.score - a.score)
                 .slice(0, 3);
 
-            const txt =
-                H +
-                `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-                `   「 𝖢𝖮𝖬𝖠𝖭𝖣𝖮 𝖭𝖮 𝖤𝖭𝖢𝖮𝖭𝖳𝖱𝖠𝖣𝖮 」\n` +
-                `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-                `┣ 🪷 *${prefix + commandName}* no existe. (⁠✿⁠◡⁠‿⁠◡⁠)\n` +
-                `┣ 🪷 usa *${prefix}menu* para ver todo\n` +
-                (similares.length
-                    ? `\n╔═══════⩽ ✧ 🪷 ✧ ⩾═══════╗\n` +
-                      `  「 𝖳𝖠𝖫 𝖵𝖤𝖹 𝖰𝖴𝖨𝖲𝖨𝖲𝖳𝖤 𝖣𝖤𝖢𝖨𝖱... 」\n` +
-                      `╚═══════⩽ ✧ 🪷 ✧ ⩾═══════╝\n` +
-                      similares.map(s => `┣ 🪷 \`${prefix + s.cmd}\`  ─  ${s.score}%`).join('\n')
-                    : '') +
-                F;
+            let txt = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n✦ [ COMANDO NO RECONOCIDO ]\n  ⟡ El comando *${prefix + commandName}* no existe en el registro.\n  ⟡ Utiliza *${prefix}menu* para ver la lista autorizada.\n`;
 
-            return hirukaReply(conn, m, txt);
+            if (similares.length) {
+                txt += `\n✦ [ SUGERENCIAS DEL SISTEMA ]\n`;
+                txt += similares.map(s => `  ⟡ ${prefix + s.cmd}  ─  Coincidencia: ${s.score}%`).join('\n');
+            }
+
+            return hiyukiReply(conn, m, txt);
         }
 
         const isPremium    = isOwner || isPremiumJid(senderJid);
@@ -349,83 +335,87 @@ export const handler = async (m, conn, plugins) => {
             }
         }
 
-        // ── Validaciones estilo HIRUKA ────────────────────────────────────────
+        // ── Validaciones de Sistema ───────────────────────────────────────────
 
         if (isGroup && database.data.groups[m.chat]?.modoadmin && !isAdmin && !isOwner) {
-            return hirukaReply(conn, m, box('𝖬𝖮𝖣𝖮 𝖠𝖣𝖬𝖨𝖭 𝖠𝖢𝖳𝖨𝖵𝖮', [
-                'solo obedezco a los *administradores*'
+            return hiyukiReply(conn, m, box('RESTRICCIÓN DE CANAL', [
+                'Modo administrador activo.',
+                'Comando ignorado.'
             ]));
         }
 
         if (database.data.settings?.modoowner && !isOwner) {
-            return hirukaReply(conn, m, box('𝖬𝖮𝖣𝖮 𝖮𝖶𝖭𝖤𝖱 𝖠𝖢𝖳𝖨𝖵𝖮', [
-                'ahora mismo solo atiendo al *owner*'
+            return hiyukiReply(conn, m, box('SISTEMA BLOQUEADO', [
+                'El sistema está operando en modo estricto.',
+                'Solo se permiten comandos del desarrollador.'
             ]));
         }
 
         if (database.data.users[senderJid]?.banned && !isOwner) {
-            return hirukaReply(conn, m, box('𝖠𝖢𝖢𝖤𝖲𝖮 𝖱𝖤𝖲𝖳𝖱𝖨𝖭𝖦𝖨𝖣𝖮', [
-                'no puedo atenderte. (￣ヘ￣)'
+            return hiyukiReply(conn, m, box('ACCESO DENEGADO', [
+                'Usuario en lista de exclusión.',
+                'Operación cancelada.'
             ]));
         }
 
         if (cmd.rowner && !isROwner) {
-            if (isOwner) return hirukaReply(conn, m, box('𝖠𝖢𝖢𝖤𝖲𝖮 𝖤𝖷𝖢𝖫𝖴𝖲𝖨𝖵𝖮', ['procedo de inmediato. ٩(◕‿◕)۶']));
-            return hirukaReply(conn, m, box('𝖠𝖢𝖢𝖤𝖲𝖮 𝖤𝖷𝖢𝖫𝖴𝖲𝖨𝖵𝖮', [
-                'solo para el *owner principal*. (￣ヘ￣)'
+            if (isOwner) return hiyukiReply(conn, m, box('SISTEMA', ['Ejecutando protocolo principal.']));
+            return hiyukiReply(conn, m, box('ACCESO DENEGADO', [
+                'Se requieren privilegios de Owner Root para esta ejecución.'
             ]));
         }
 
         if (cmd.owner && !isOwner) {
-            return hirukaReply(conn, m, box('𝖠𝖢𝖢𝖤𝖲𝖮 𝖱𝖤𝖲𝖳𝖱𝖨𝖭𝖦𝖨𝖣𝖮', [
-                'solo para los *creadores*. (￣ヘ￣)'
+            return hiyukiReply(conn, m, box('ACCESO DENEGADO', [
+                'Permisos insuficientes.',
+                'Comando restringido a administradores de sistema.'
             ]));
         }
 
         if (cmd.premium && !isPremium) {
-            return hirukaReply(conn, m, box('𝖤𝖷𝖢𝖫𝖴𝖲𝖨𝖵𝖮 𝖯𝖱𝖤𝖬𝖨𝖴𝖬', [
-                'necesitas *premium* para esto. (〃￣ω￣〃)'
+            return hiyukiReply(conn, m, box('ACCESO RESTRINGIDO', [
+                'Se requiere suscripción Premium para acceder a esta función.'
             ]));
         }
 
         if (cmd.register && !isRegistered) {
-            return hirukaReply(conn, m, box('𝖱𝖤𝖦𝖨𝖲𝖳𝖱𝖮 𝖱𝖤𝖰𝖴𝖤𝖱𝖨𝖣𝖮', [
-                'primero debes registrarte. (⁠✿⁠◡⁠‿⁠◡⁠)',
-                `usa: *${prefix}reg nombre.edad*`
+            return hiyukiReply(conn, m, box('USUARIO NO RECONOCIDO', [
+                'No estás en la base de datos.',
+                `Ejecuta: *${prefix}reg nombre.edad* para proceder.`
             ]));
         }
 
         if (cmd.group && !isGroup) {
-            return hirukaReply(conn, m, box('𝖲𝖮𝖫𝖮 𝖤𝖭 𝖦𝖱𝖴𝖯𝖮𝖲', [
-                'este comando solo funciona en *grupos*. (°ロ°)'
+            return hiyukiReply(conn, m, box('ENTORNO INVÁLIDO', [
+                'Este comando está diseñado exclusivamente para grupos.'
             ]));
         }
 
         if (cmd.admin && !isAdmin) {
-            if (isOwner) return hirukaReply(conn, m, box('𝖠𝖣𝖬𝖨𝖭', ['procedo. ٩(◕‿◕)۶']));
-            return hirukaReply(conn, m, box('𝖲𝖮𝖫𝖮 𝖠𝖣𝖬𝖨𝖭𝖨𝖲𝖳𝖱𝖠𝖣𝖮𝖱𝖤𝖲', [
-                'necesitas ser *admin* para esto. (￣ヘ￣)'
+            if (isOwner) return hiyukiReply(conn, m, box('SISTEMA', ['Ejecución forzada autorizada.']));
+            return hiyukiReply(conn, m, box('PERMISOS INSUFICIENTES', [
+                'Debes poseer el rol de Administrador en este grupo.'
             ]));
         }
 
         if (cmd.botAdmin && !isBotAdmin) {
-            return hirukaReply(conn, m, box('𝖭𝖤𝖢𝖤𝖲𝖨𝖳𝖮 𝖲𝖤𝖱 𝖠𝖣𝖬𝖨𝖭', [
-                'dame *admin* para ejecutar esto. (⁠っ⁠. ⸝⸝⸝ . c⁠)'
+            return hiyukiReply(conn, m, box('ERROR DE SISTEMA', [
+                'El protocolo requiere que el Bot posea permisos de Administrador.'
             ]));
         }
 
         if (cmd.private && isGroup) {
-            return hirukaReply(conn, m, box('𝖲𝖮𝖫𝖮 𝖤𝖭 𝖯𝖱𝖨𝖵𝖠𝖣𝖮', [
-                'úsalo en nuestro *chat personal*. (⁠˘⁠︶⁠˘⁠)⁠.⁠｡⁠*⁠♡'
+            return hiyukiReply(conn, m, box('ENTORNO INVÁLIDO', [
+                'Este comando requiere una conexión privada directa (MD).'
             ]));
         }
 
         if (cmd.limit && !isPremium && !isOwner) {
             const userLimit = database.data.users[senderJid].limit ?? 0;
             if (userLimit < 1) {
-                return hirukaReply(conn, m, box('𝖫𝖨𝖬𝖨𝖳𝖤 𝖠𝖦𝖮𝖳𝖠𝖣𝖮', [
-                    'agotaste tus usos de hoy. (－‸－)',
-                    'vuelve mañana o adquiere *premium*'
+                return hiyukiReply(conn, m, box('LÍMITE ALCANZADO', [
+                    'Tu cuota de peticiones se ha agotado por hoy.',
+                    'El sistema se reiniciará en el próximo ciclo.'
                 ]));
             }
             database.data.users[senderJid].limit -= 1;
@@ -461,17 +451,12 @@ export const handler = async (m, conn, plugins) => {
             }
 
             if (isOwner) {
-                await hirukaReply(conn, m,
-                    H +
-                    `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-                    `      「 𝖤𝖱𝖱𝖮𝖱 𝖣𝖤𝖳𝖤𝖢𝖳𝖠𝖣𝖮 」\n` +
-                    `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-                    `┣ 🪷 comando:  *${prefix + commandName}*\n` +
-                    `┣ 🪷 archivo:  ${file}  (línea: ${line})\n` +
-                    `┣ 🪷 error:    ${name}\n` +
-                    `┣ 🪷 detalle:  ${message.slice(0, 280)}` +
-                    F
-                );
+                await hiyukiReply(conn, m, box('REPORTE DE FALLO', [
+                    `Comando: ${prefix + commandName}`,
+                    `Archivo: ${file} (Línea: ${line})`,
+                    `Tipo: ${name}`,
+                    `Detalle: ${message.slice(0, 280)}`
+                ]));
             }
         }
 
@@ -479,14 +464,9 @@ export const handler = async (m, conn, plugins) => {
         console.log(chalk.red('[HANDLER ERROR]'), err);
         const senderCheck = (m?.sender || '').replace(/:[0-9A-Za-z]+(?=@s\.whatsapp\.net)/, '');
         if (m?.reply && isOwnerJid(senderCheck)) {
-            await hirukaReply(conn, m,
-                H +
-                `╔═══════⩽ ✧ 🪭 ✧ ⩾═══════╗\n` +
-                `        「 𝖤𝖱𝖱𝖮𝖱 𝖢𝖱𝖨𝖳𝖨𝖢𝖮 」\n` +
-                `╚═══════⩽ ✧ 🪭 ✧ ⩾═══════╝\n` +
-                `┣ 🪷 ${String(err).slice(0, 280)}` +
-                F
-            );
+            await hiyukiReply(conn, m, box('ERROR CRÍTICO DEL SISTEMA', [
+                String(err).slice(0, 280)
+            ]));
         }
     }
 };
