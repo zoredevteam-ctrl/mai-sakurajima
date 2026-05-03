@@ -3,9 +3,16 @@
 // ⟡ Design: Adrien | XLR4-Security
 
 let handler = async (m, { groupMetadata, command, conn, text, usedPrefix }) => {
-    if (!text) return conn.reply(m.chat, `❄︎ [ ERROR ] Por favor, ingrese un criterio para el Top 10.\n\n› Ejemplo: *${usedPrefix + command} los más pro*`, m)
+    // ── PROTOCOLO DE VALIDACIÓN ──────────────────────────────────────────
+    if (!m.isGroup) return // Blindaje: Ignorar si no es grupo
+    
+    // Si groupMetadata llega como undefined, lo forzamos a cargar
+    if (!groupMetadata) groupMetadata = await conn.groupMetadata(m.chat)
+    if (!groupMetadata.participants) throw '❄︎ [ ERROR CRÍTICO ] No se pudo acceder a la lista de participantes.'
 
-    // Obtener participantes y mezclar de forma aleatoria
+    if (!text) return conn.reply(m.chat, `❄︎ [ ERROR ] Ingrese un criterio para el Top 10.\n\n› Ejemplo: *${usedPrefix + command} más pro*`, m)
+
+    // Obtener participantes y mezclar
     let participants = groupMetadata.participants.map(v => v.id)
     let sorted = participants.sort(() => 0.5 - Math.random())
     
@@ -13,8 +20,7 @@ let handler = async (m, { groupMetadata, command, conn, text, usedPrefix }) => {
     let top10 = sorted.slice(0, 10)
     
     // Configuración estética
-    const emojis = ['❄︎', '✦', '⟡', '💠', '⚔️', '⚙️', '🧊']
-    const icon = emojis[Math.floor(Math.random() * emojis.length)]
+    const icon = '❄︎'
     
     let report = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n`
     report += `✦ [ TOP 10: ${text.toUpperCase()} ]\n\n`
@@ -43,6 +49,6 @@ let handler = async (m, { groupMetadata, command, conn, text, usedPrefix }) => {
 handler.help = ['top10 <texto>']
 handler.command = ['top', 'top10']
 handler.tags = ['fun']
-handler.group = true
+handler.group = true // Solo se activa en grupos
 
 export default handler
