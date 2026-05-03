@@ -1,68 +1,56 @@
 // plugins/check.js
 import fs from 'fs'
 import path from 'path'
-import { Worker } from 'worker_threads'
+import { exec } from 'child_process'
+import { promisify } from 'util'
+
+// Convertimos exec a promesas para manejar el asincronismo limpiamente
+const execPromise = promisify(exec)
 
 let handler = async (m, { conn, isOwner }) => {
     if (!isOwner) return
 
     const pluginsDir = './plugins'
     const files = fs.readdirSync(pluginsDir).filter(f => f.endsWith('.js'))
-    
+
     await m.react('🔍')
-    
+
     let report = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n`
-    report += `✦ [ ANÁLISIS DE INTEGRIDAD ESM ]\n`
-    
+    report += `✦ [ ANÁLISIS DE SINTAXIS NATIVO ]\n`
+
     let errors = []
     let total = 0
 
     for (const file of files) {
         total++
         const filePath = path.join(pluginsDir, file)
-        const code = fs.readFileSync(filePath, 'utf-8')
 
-        // Validamos usando un Worker temporal para probar la carga del módulo
-        // Esto evita el error de "outside a module"
         try {
-            await new Promise((resolve, reject) => {
-                const workerCode = `
-                    import('file://${filePath.replace(/\\/g, '/')}')
-                    .then(() => process.exit(0))
-                    .catch(err => {
-                        console.error(err);
-                        process.exit(1);
-                    })
-                `
-                const worker = new Worker(workerCode, { eval: true })
-                worker.on('exit', (code) => {
-                    if (code === 0) resolve()
-                    else reject(new Error('Syntax Error'))
-                })
-                worker.on('error', reject)
-                
-                // Timeout de seguridad para no trabar el bot
-                setTimeout(() => {
-                    worker.terminate()
-                    resolve()
-                }, 1000)
-            })
+            // "node --check" compila el archivo para buscar errores, pero no lo ejecuta.
+            // Es la forma más segura de validar ESM.
+            await execPromise(`node --check "${filePath}"`)
         } catch (e) {
-            // Intentamos capturar la línea real del error buscando en el stack
-            const stack = e.stack || ''
-            const lineMatch = stack.match(/:(\d+):(\d+)/)
-            const line = lineMatch ? lineMatch[1] : 'Sintaxis/Import'
+            // Si hay un error de sintaxis, node lo arroja en stderr
+            const errText = e.stderr || e.message
             
-            errors.push(`❌ *${file}*\n   ⟡ Estado: Crítico\n   ⟡ Nota: Revisar exportaciones o dependencias.`);
+            // Extraemos la línea del error (ej. file.js:45)
+            const matchLine = errText.match(/:(\d+)/)
+            const line = matchLine ? matchLine[1] : '?'
+            
+            // Extraemos el tipo de error (ej. SyntaxError: Unexpected token)
+            const matchError = errText.match(/(SyntaxError:.*?)\n/i) || errText.match(/(Error:.*?)\n/i)
+            const errorDesc = matchError ? matchError[1] : 'Error de Exportación/Sintaxis'
+
+            errors.push(`❌ *${file}*\n   ⟡ Línea: ${line}\n   ⟡ Detalle: ${errorDesc.trim()}`)
         }
     }
 
     if (errors.length === 0) {
-        report += `  ⟡ Módulos analizados: ${total}\n  ⟡ Estado: *ÓPTIMO*\n\n> Todos los archivos .js son compatibles con el núcleo.`
+        report += `  ⟡ Módulos analizados: ${total}\n  ⟡ Estado: *ÓPTIMO*\n\n> Todos los archivos .js tienen una sintaxis perfecta.`
     } else {
-        report += `  ⟡ Módulos analizados: ${total}\n  ⟡ Incompatibles: ${errors.length}\n\n`
+        report += `  ⟡ Módulos analizados: ${total}\n  ⟡ Fallos detectados: ${errors.length}\n\n`
         report += errors.join('\n\n')
-        report += `\n\n> Nota: Si todos fallan, el sistema de validación está bloqueado por permisos del VPS.`
+        report += `\n\n> Corrige los errores de sintaxis marcados.`
     }
 
     return conn.sendMessage(m.chat, { text: report }, { quoted: m })
