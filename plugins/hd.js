@@ -54,18 +54,20 @@ async function iloveimgUpscale(imageBuffer, filename) {
   return Buffer.from(await res.arrayBuffer())
 }
 
+// ─── HANDLER PRINCIPAL ───────────────────────────────────────────────────────
+
 let handler = async (m, { conn, usedPrefix, command }) => {
   let q = m.quoted ? m.quoted : m
   let mime = (q.msg || q).mimetype || ''
 
   if (!/image\/(jpe?g|png|webp)/.test(mime)) {
-    return conn.reply(m.chat, `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n✦ [ ERROR DE MUESTRA ]\n  ⟡ Responde a una imagen para iniciar la mejora.\n  ⟡ Uso: *${usedPrefix + command}*`, m)
+    const errorText = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n✦ [ ERROR DE MUESTRA ]\n  ⟡ Responde a una imagen para iniciar la mejora.\n  ⟡ Uso: *${usedPrefix + command}*`
+    return conn.sendMessage(m.chat, { text: errorText }, { quoted: m })
   }
 
   await m.react('⏳')
 
   try {
-    // CORRECCIÓN: Usamos la función importada directamente
     let media = await downloadMediaMessage(
         q,
         'buffer',
@@ -87,7 +89,8 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   } catch (e) {
     console.error(e)
     await m.react('❌')
-    m.reply(`❄︎ [ FALLO DE SISTEMA ]\n⟡ Detalle: ${e.message}`)
+    const failureText = `❄︎ [ FALLO DE SISTEMA ]\n⟡ Detalle: ${e.message}`
+    conn.sendMessage(m.chat, { text: failureText }, { quoted: m })
   }
 }
 
