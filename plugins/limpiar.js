@@ -1,18 +1,20 @@
-// plugins/limpiar.js
 import fs from 'fs'
 import path from 'path'
+import os from 'os'
 
-let handler = async (m, { conn, usedPrefix, command, isOwner }) => {
-    if (!isOwner) return // Seguridad XLR4
+let handler = async (m, { conn, isOwner }) => {
+    if (!isOwner) return 
 
-    await m.react('🧹')
+    await m.react('❄︎')
     
-    // Directorios que suelen acumular basura
+    // --- 1. Métrica de inicio ---
+    const memoriaInicial = (os.totalmem() - os.freemem()) / 1024 / 1024
+    
+    // Directorios a limpiar
     const tmpDirs = ['./tmp', './temp', './session/baileys_store.json']
-    let report = ''
     let filesDeleted = 0
 
-    // 1. Limpieza de archivos temporales
+    // --- 2. Ejecución de la Purga ---
     for (const dir of tmpDirs) {
         if (fs.existsSync(dir)) {
             const stats = fs.statSync(dir)
@@ -22,26 +24,21 @@ let handler = async (m, { conn, usedPrefix, command, isOwner }) => {
                     try {
                         fs.unlinkSync(path.join(dir, file))
                         filesDeleted++
-                    } catch (e) { /* Archivo en uso */ }
+                    } catch (e) { }
                 })
-                report += `  ⟡ Directorio \`${dir}\`: Limpiado.\n`
             } else {
                 try {
-                    fs.unlinkSync(dir)
-                    filesDeleted++
-                    report += `  ⟡ Archivo \`${dir}\`: Eliminado.\n`
+                    fs.unlinkSync(dir); filesDeleted++
                 } catch (e) { }
             }
         }
     }
 
-    // 2. Optimización de la Sesión (Solo archivos basura de Baileys)
+    // Limpieza selectiva de sesión (preservando el login)
     const authPath = './session'
     if (fs.existsSync(authPath)) {
         const authFiles = fs.readdirSync(authPath)
         authFiles.forEach(file => {
-            // ELIMINA sesiones antiguas que NO sean la principal (creds.json)
-            // Esto limpia archivos de pre-keys antiguos y basura de caché
             if (file !== 'creds.json' && (file.includes('pre-key') || file.includes('sender-key') || file.includes('session-'))) {
                 try {
                     fs.unlinkSync(path.join(authPath, file))
@@ -49,19 +46,28 @@ let handler = async (m, { conn, usedPrefix, command, isOwner }) => {
                 } catch (e) { }
             }
         })
-        report += `  ⟡ Carpeta de Sesión: Optimizada (creds.json preservado).\n`
     }
 
-    return conn.sendMessage(m.chat, {
-        text: `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
-              `✦ [ MANTENIMIENTO COMPLETADO ]\n` +
-              report +
-              `\n  ⟡ Total de archivos purgados: *${filesDeleted}*\n` +
-              `  ⟡ Estado del sistema: *Optimizado*\n\n` +
-              `> El núcleo de Hiyuki ahora está más ligero.`
-    }, { quoted: m })
+    // --- 3. Métricas finales y Hardware ---
+    const memoriaFinal = (os.totalmem() - os.freemem()) / 1024 / 1024
+    const ramTotal = os.totalmem() / 1024 / 1024
+    const cpuModelo = os.cpus()[0].model
+    const uptime = Math.floor(os.uptime() / 3600)
+
+    let texto = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n`
+    texto += `✦ [ MANTENIMIENTO Y HARDWARE ]\n`
+    texto += `  ⟡ Archivos purgados: *${filesDeleted}*\n`
+    texto += `  ⟡ RAM en uso: *${memoriaFinal.toFixed(2)} MB* / ${Math.round(ramTotal)} MB\n`
+    texto += `  ⟡ Ahorro estimado: *${(memoriaInicial - memoriaFinal).toFixed(2)} MB*\n`
+    texto += `  ⟡ Uptime del VPS: *${uptime} horas*\n\n`
+    texto += `✦ [ ESPECIFICACIONES ]\n`
+    texto += `  ⟡ CPU: \`${cpuModelo}\`\n`
+    texto += `  ⟡ Plataforma: \`${os.platform()} ${os.release()}\`\n\n`
+    texto += `> Sistema optimizado bajo el protocolo XLR4.`
+
+    return conn.sendMessage(m.chat, { text: texto }, { quoted: m })
 }
 
-handler.command = ['limpiar', 'purge', 'clean']
+handler.command = ['limpiar', 'purge', 'clean', 'rtam']
 handler.owner = true
 export default handler
