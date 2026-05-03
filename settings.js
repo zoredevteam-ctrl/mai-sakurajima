@@ -11,6 +11,7 @@ global.botVersion = '1.0.0'
 global.owner = [
   ['573107400303', '˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ', true],
   ['123613520896125', '˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ LID', true]
+  ['51925092348', 'Jhon', true]
 ]
 
 global.owners = global.owner.map(v => v[0])
