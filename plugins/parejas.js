@@ -1,22 +1,28 @@
 // plugins/parejas.js
 
-const rand = arr => arr[Math.floor(Math.random() * arr.length)]
-
+const rand    = arr => arr[Math.floor(Math.random() * arr.length)]
 const pickDiff = (arr, ...excluir) => {
     let pick
     do { pick = rand(arr) } while (excluir.includes(pick))
     return pick
 }
-
 const toM = jid => '@' + jid.split('@')[0]
 
-let handler = async (m, { conn, command, groupMetadata }) => {
+let handler = async (m, { conn, command }) => {
     const cmd = command.toLowerCase()
-    const ps  = groupMetadata?.participants?.map(v => v.id) || []
+
+    // Obtener participantes directo desde conn
+    let ps = []
+    try {
+        const meta = await conn.groupMetadata(m.chat)
+        ps = meta.participants.map(p => p.id || p.jid).filter(Boolean)
+    } catch (e) {
+        return m.reply(`⟪❄︎⟫ no pude obtener los miembros del grupo❄︎`)
+    }
 
     if (ps.length < 2) return m.reply(`⟪❄︎⟫ necesito al menos 2 personas en el grupo❄︎`)
 
-    // ── #pareja — una pareja random ───────────────────────────────────────────
+    // ── #pareja ───────────────────────────────────────────────────────────────
     if (cmd === 'pareja' || cmd === 'formarpareja' || cmd === 'formarparejas') {
         const a = rand(ps)
         const b = pickDiff(ps, a)
@@ -30,7 +36,7 @@ let handler = async (m, { conn, command, groupMetadata }) => {
         }, { quoted: m })
     }
 
-    // ── #parejas — top 5 parejas ──────────────────────────────────────────────
+    // ── #parejas — top 5 ──────────────────────────────────────────────────────
     if (cmd === 'parejas' || cmd === 'formarpareja5') {
         if (ps.length < 10) return m.reply(`⟪❄︎⟫ necesito al menos 10 personas para el top 5❄︎`)
 
