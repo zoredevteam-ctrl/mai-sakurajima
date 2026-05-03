@@ -3,6 +3,7 @@
 // ⟡ Design & Control: Adrien | XLR4-Security
 
 import { randomUUID } from 'crypto'
+import { downloadMediaMessage } from '@whiskeysockets/baileys'
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36'
 const PUBLIC_JWT = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiIiLCJhdWQiOiIiLCJpYXQiOjE1MjMzNjQ4MjQsIm5iZiI6MTUyMzM2NDgyNCwianRpIjoicHJvamVjdF9wdWJsaWNfYzkwNWRkMWMwMWU5ZmQ3NzY5ODNjYTQwZDBhOWQyZjNfT1Vzd2EwODA0MGI4ZDJjN2NhM2NjZGE2MGQ2MTBhMmRkY2U3NyJ9.qvHSXgCJgqpC4gd6-paUlDLFmg0o2DsOvb1EUYPYx_E'
@@ -32,16 +33,13 @@ function multipart(fields, fileField) {
 }
 
 async function iloveimgUpscale(imageBuffer, filename) {
-  // 1. Start Task
   const start = await fetch(`https://api.iloveimg.com/v1/start/${TOOL}`, { headers: BASE_HEADERS })
   const { server, task } = await start.json()
 
-  // 2. Upload
   const { body: upBody, contentType: upType } = multipart({ task }, { name: 'file', filename, mime: 'image/jpeg', buffer: imageBuffer })
   const upload = await fetch(`https://${server}/v1/upload`, { method: 'POST', headers: { ...BASE_HEADERS, 'content-type': upType }, body: upBody })
   const { server_filename } = await upload.json()
 
-  // 3. Process
   const { body: procBody, contentType: procType } = multipart({
     'packaged_filename': 'hiyuki_hd',
     'task': task,
@@ -52,12 +50,9 @@ async function iloveimgUpscale(imageBuffer, filename) {
   })
   await fetch(`https://${server}/v1/process`, { method: 'POST', headers: { ...BASE_HEADERS, 'content-type': procType }, body: procBody })
 
-  // 4. Download
   const res = await fetch(`https://${server}/v1/download/${task}`, { headers: { 'user-agent': UA, 'referer': 'https://www.iloveimg.com/' } })
   return Buffer.from(await res.arrayBuffer())
 }
-
-// ─── HANDLER PRINCIPAL ───────────────────────────────────────────────────────
 
 let handler = async (m, { conn, usedPrefix, command }) => {
   let q = m.quoted ? m.quoted : m
@@ -70,10 +65,17 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   await m.react('⏳')
 
   try {
-    let media = await q.download()
-    let filename = `hiyuki_upscale_${Date.now()}.jpg`
+    // CORRECCIÓN: Usamos la función importada directamente
+    let media = await downloadMediaMessage(
+        q,
+        'buffer',
+        {},
+        { logger: console, reuploadRequest: conn.updateMediaMessage }
+    )
+    
+    if (!media) throw new Error('No se pudo descargar el buffer de la imagen.')
 
-    // Iniciando proceso de IA
+    let filename = `hiyuki_hd_${Date.now()}.jpg`
     const resultBuffer = await iloveimgUpscale(media, filename)
 
     await conn.sendMessage(m.chat, {
@@ -85,7 +87,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
   } catch (e) {
     console.error(e)
     await m.react('❌')
-    m.reply(`❄︎ [ FALLO DE SISTEMA ]\n⟡ Error en la interpolación: ${e.message}`)
+    m.reply(`❄︎ [ FALLO DE SISTEMA ]\n⟡ Detalle: ${e.message}`)
   }
 }
 
