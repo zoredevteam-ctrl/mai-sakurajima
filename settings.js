@@ -4,14 +4,14 @@ import { fileURLToPath } from 'url'
 
 // ━─── ✦ ───━  IDENTIDAD  ━─── ✦ ───━
 
-global.botName    = 'Mai Sakurajima'
+global.botName    = 'Hiyuki Celestial MD'
 global.ownerName  = '˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ'
 global.botVersion = '1.0.0'
 
 global.owner = [
-  ['573107400303', '˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ', true],
-  ['123613520896125', '˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ LID', true]
-  ['51925092348', 'Jhon', true]
+  ['573107400303',    '˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ', true],
+  ['123613520896125', '˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ LID', true],
+  ['51925092348',     'Jhon', true],
   ['162234554671342', 'Jhon LID', true]
 ]
 
@@ -28,7 +28,6 @@ global.rcanal = 'https://whatsapp.com/channel/0029Vb85bh7EAKWOM4Zw8N3G'
 global.newsletterJid  = '120363408182996815@newsletter'
 global.newsletterName = '「✿𝐇𝐢𝐲𝐮𝐤𝐢 এ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐩𝐚𝐭𝐫𝐨𝐧✿」'
 
-
 // Banner principal (imagen grande para menú)
 global.banner = 'https://upload.yotsuba.giize.com/u/jbHoJtR2.jpg'
 
@@ -37,7 +36,6 @@ global.icono  = 'https://upload.yotsuba.giize.com/u/K-WsVHiN.jpg'
 
 // ━─── ✦ ───━  HELPERS DE IMAGEN  ━─── ✦ ───━
 
-// Banner grande — para menú y bienvenidas
 global.getBannerThumb = async () => {
     try {
         const res = await fetch(global.banner)
@@ -45,7 +43,6 @@ global.getBannerThumb = async () => {
     } catch { return null }
 }
 
-// Icono pequeño — para comandos normales
 global.getIconThumb = async () => {
     try {
         const res = await fetch(global.icono)
@@ -55,7 +52,6 @@ global.getIconThumb = async () => {
 
 // ━─── ✦ ───━  NEWSLETTER CONTEXT  ━─── ✦ ───━
 
-// useBanner: true = imagen grande (menú), false = icono pequeño (comandos)
 global.getNewsletterCtx = (thumbnail = null, title = null, body = null, renderLarge = false) => {
     return {
         isForwarded: true,
