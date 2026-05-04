@@ -23,8 +23,8 @@ const sendStyled = async (conn, m, text) => {
                     newsletterName:  global.newsletterName
                 },
                 externalAdReply: {
-                    title:                 global.botName || 'Hiyuki Celestial MD',
-                    body:                  global.botName || 'Hiyuki Celestial MD',
+                    title:                 global.botName || '✦ Hiyuki Celestial MD',
+                    body:                  global.botName || '˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ',
                     mediaType:             1,
                     thumbnail:             thumb,
                     renderLargerThumbnail: false,
@@ -186,7 +186,7 @@ let handler = async (m, { conn, args, usedPrefix, command, db }) => {
             stiker = await sticker(false, args[0], global.packname, global.author)
         } else {
             return sendStyled(conn, m,
-                `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n✦ [ ERROR DE MUESTRA ]\n  ⟡ Responde a una *imagen* o *video* con *${usedPrefix + command}*\n  ⟡ También puedes pasar una *URL* directamente.`
+                `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n✦ [ 𝑺𝑻𝑰𝑪𝑲𝑬𝑹 ]\n  ⟡ Responde a una *imagen* o *video* con *${usedPrefix + command}*\n  ⟡ También puedes pasar una *URL* directamente.`
             )
         }
 
@@ -207,4 +207,4 @@ handler.command = ['s', 'sticker', 'stiker', 'wm', 'watermark', 'marca', 'toimag
 handler.tags    = ['tools']
 
 export default handler
-                         
+        
