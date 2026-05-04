@@ -8,13 +8,13 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
                 `✦ [ FACEBOOK DOWNLOADER ]\n` +
                 `  ⟡ Proporciona un enlace de Facebook.\n\n` +
                 `  ⟡ Uso: *${usedPrefix + command}* https://fb.watch/xxxx\n` +
-                `  ⟡ Uso: *${usedPrefix + command}* https://www.facebook.com/watch/?v=xxx`,
+                `  ⟡ Uso: *${usedPrefix + command}* https://www.facebook.com/share/r/xxxx`,
             contextInfo: ctx
         }, { quoted: m })
     }
 
     const fbLink = args[0]
-    if (!/facebook\.com|fb\.watch/g.test(fbLink)) {
+    if (!/facebook\.com|fb\.watch/i.test(fbLink)) {
         const thumb = await global.getIconThumb?.() || null
         const ctx   = global.getNewsletterCtx?.(thumb) || {}
         return conn.sendMessage(m.chat, {
@@ -33,20 +33,23 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
     const apiKey  = global.APICAUSAS_KEY || '121-Nino-k'
     const apiUrl  = `https://rest.apicausas.xyz/api/v1/descargas/facebook?apikey=${apiKey}&url=${encoded}`
 
-    let videoUrl = null
-    let title    = null
-    let author   = null
-    let likes    = null
+    let videoUrl  = null
+    let title     = null
+    let author    = null
+    let thumbnail = null
 
     try {
         const res = await fetch(apiUrl, { signal: AbortSignal.timeout(15000) })
         if (!res.ok) throw new Error(`API respondió con HTTP ${res.status}`)
         const json = await res.json()
 
-        title  = json.resultado?.titulo || json.resultado?.title  || json.title  || null
-        author = json.resultado?.autor  || json.resultado?.author || json.author || null
-        likes  = json.resultado?.likes  || json.likes             || null
-        videoUrl = json.resultado?.url  || json.url               || null
+        if (!json.status) throw new Error('API devolvió status false')
+
+        // Estructura real: { status, title, thumbnail, data: { url, quality, type }, author }
+        title     = json.title     || null
+        author    = json.author    || null
+        thumbnail = json.thumbnail || null
+        videoUrl  = json.data?.url || null
 
         if (!videoUrl?.startsWith('http')) videoUrl = null
     } catch (err) {
@@ -80,7 +83,7 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
             text:
                 `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
                 `✦ [ ERROR DE DESCARGA ]\n` +
-                `  ⟡ El servidor no permitió descargar el archivo.\n` +
+                `  ⟡ No se pudo descargar el archivo.\n` +
                 `  ⟡ ${err.message}`,
             contextInfo: ctx
         }, { quoted: m })
@@ -91,9 +94,8 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
     const caption =
         `\`ˏˋ ❏ ғɪʟᴇ ɪɴғᴏ ˎˊ -\`\n` +
         `━━━━━━━━━━━━━━━━━━\n` +
-        `↬ \`✧ ᴀᴜᴛᴏʀ:\` *${author || 'Desconocido'}*\n` +
-        `↬ \`✦ ᴛɪᴛᴜʟᴏ:\` *${title  || 'Sin título'}*\n` +
-        `↬ \`ღ ʟɪᴋᴇs:\` *${likes  || 'N/A'}*\n` +
+        `↬ \`✧ ᴛɪᴛᴜʟᴏ:\` *${title  || 'Sin título'}*\n` +
+        `↬ \`✦ ᴀᴜᴛᴏʀ:\` *${author || 'Desconocido'}*\n` +
         `↬ \`ⴵ sɪᴢᴇ:\` *${sizeText}*\n` +
         `↬ \`↳ ʟɪɴᴋ:\` *${fbLink}*\n` +
         `━━━━━━━━━━━━━━━━━━\n` +
