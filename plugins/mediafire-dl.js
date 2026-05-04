@@ -18,17 +18,7 @@ const fmtBytes = (b) => {
     return (b / 1024).toFixed(2) + ' KB'
 }
 
-const progressBar = (pct, width = 14) => {
-    const filled = Math.round(width * pct / 100)
-    return '█'.repeat(filled) + '░'.repeat(width - filled)
-}
 
-const buildStatus = (emoji, label, pct, done, total, speed) =>
-    `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
-    `${emoji} *${label}*\n` +
-    `\`[${progressBar(pct)}] ${pct.toFixed(1)}%\`\n` +
-    `✦ Progreso: ${fmtBytes(done)} / ${fmtBytes(total)}\n` +
-    `✦ Velocidad: ${fmtBytes(speed)}/s`
 
 const getThumb = async () => {
     try {
@@ -114,8 +104,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
     let tempPath
 
     const { key: statusKey } = await sendStyled(conn, m,
-        `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
-        `🔄 _Obteniendo información del archivo..._`
+        `⏳ _Descargando, espere..._\n\n_${global.botName || 'Hiyuki Celestial MD'}_`
     )
     const editStatus = txt => conn.sendMessage(m.chat, { text: txt, edit: statusKey })
 
@@ -129,14 +118,6 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
             timeout:    10000
         })
         const sizeBytes = parseInt(head.headers['content-length'] || '0')
-
-        await editStatus(
-            `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
-            `🔥 *${mfData.name}*\n` +
-            `✦ Tamaño: ${fmtBytes(sizeBytes)}\n` +
-            `🔄 _Iniciando descarga..._\n` +
-            `_Responde con_ *.cancelar* _para detener._`
-        )
 
         global.mfActiveDownloads.set(statusKey.id, { controller })
 
@@ -165,7 +146,6 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
                 process.stdout.write(`\r[MediaFire] 📥 ${pct.toFixed(1)}% | ${fmtBytes(dlBytes)} | ${fmtBytes(speed)}/s`)
                 if (now - lastWAUpdate > 3000) {
                     lastWAUpdate = now
-                    editStatus(buildStatus('📥', 'Descargando de MediaFire', pct, dlBytes, sizeBytes, speed))
                 }
                 cb(null, chunk)
             }
@@ -173,11 +153,6 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
         await pipeline(response.data, dlStream, fs.createWriteStream(tempPath), { signal })
         console.log(`\n[MediaFire] ✅ ${mfData.name}`)
-
-        await editStatus(
-            `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
-            `✅ _Descarga completa._\n📤 _Subiendo a WhatsApp..._`
-        )
 
         const realSize = fs.statSync(tempPath).size
         let upBytes = 0
@@ -194,7 +169,6 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
                 process.stdout.write(`\r[MediaFire] 📤 ${pct.toFixed(1)}% | ${fmtBytes(upBytes)}/${fmtBytes(realSize)} | ${fmtBytes(speed)}/s`)
                 if (now - lastUpWA > 3000) {
                     lastUpWA = now
-                    editStatus(buildStatus('📤', 'Subiendo a WhatsApp', pct, upBytes, realSize, speed))
                 }
                 cb(null, chunk)
             }
@@ -215,10 +189,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
         }, { quoted: m })
 
         console.log(`\n[MediaFire] 🚀 Enviado a ${m.sender}`)
-        await editStatus(
-            `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
-            `✅ *¡Listo!* Archivo enviado correctamente.`
-        )
+        await editStatus(`✅ _Archivo enviado._\n\n_${global.botName || 'Hiyuki Celestial MD'}_`)
         global.mfActiveDownloads.delete(statusKey.id)
 
     } catch (e) {
@@ -226,7 +197,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
             console.log('\n[MediaFire] 🛑 Cancelado.')
         } else {
             const msg = typeof e === 'string' ? e : `❌ *Error:* ${e.message}`
-            await editStatus(`❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n${msg}`)
+            await editStatus(`❌ ${msg}\n\n_${global.botName || 'Hiyuki Celestial MD'}_`)
             console.error('\n[MediaFire ERROR]', e)
         }
         global.mfActiveDownloads.delete(statusKey?.id)
@@ -240,4 +211,4 @@ handler.tags    = ['downloader']
 handler.command = ['mediafire', 'mf', 'cancelarmf']
 
 export default handler
-        
+                                          
