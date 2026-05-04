@@ -1,23 +1,22 @@
 import { downloadMediaMessage } from '@whiskeysockets/baileys'
 import { sticker, writeExif } from '../lib/sticker.js'
-import ffmpeg from 'fluent-ffmpeg'
+import { spawn } from 'child_process'
 import fs from 'fs-extra'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import Crypto from 'crypto'
-import { Jimp } from 'jimp'
+import sharp from 'sharp'
 
 const tmpFile = (ext) => join(tmpdir(), `${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.${ext}`)
 
-const ffRun = (inputPath, outputPath, configurator) =>
-    new Promise((resolve, reject) => {
-        const cmd = ffmpeg(inputPath)
-        configurator(cmd)
-        cmd.output(outputPath)
-            .on('end', resolve)
-            .on('error', reject)
-            .run()
+function ffRun(args) {
+    return new Promise((resolve, reject) => {
+        const p = spawn('ffmpeg', args)
+        let err = ''
+        p.stderr.on('data', d => err += d)
+        p.on('close', code => code === 0 ? resolve() : reject(new Error(err.slice(-400))))
     })
+}
 
 const sendStyled = async (conn, m, text) => {
     try {
@@ -48,22 +47,11 @@ const sendStyled = async (conn, m, text) => {
 }
 
 async function webpToPng(buffer) {
-    const img = await Jimp.read(buffer)
-    return img.getBuffer('image/png')
+    return sharp(buffer).png().toBuffer()
 }
 
 async function webpToGif(buffer) {
-    const png    = await webpToPng(buffer)
-    const tmpIn  = tmpFile('png')
-    const tmpOut = tmpFile('gif')
-    await fs.writeFile(tmpIn, png)
-    await ffRun(tmpIn, tmpOut, cmd =>
-        cmd.videoFilters('fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse')
-    )
-    const result = await fs.readFile(tmpOut)
-    await fs.remove(tmpIn)
-    await fs.remove(tmpOut)
-    return result
+    return sharp(buffer, { animated: true }).gif().toBuffer()
 }
 
 async function addWatermarkImg(buffer, texto) {
@@ -71,10 +59,12 @@ async function addWatermarkImg(buffer, texto) {
     const tmpOut = tmpFile('jpg')
     await fs.writeFile(tmpIn, buffer)
     const safe = texto.replace(/'/g, "\\'").replace(/:/g, '\\:')
-    await ffRun(tmpIn, tmpOut, cmd =>
-        cmd.videoFilters(`drawtext=text='${safe}':fontsize=28:fontcolor=white:borderw=2:bordercolor=black:x=w-tw-18:y=h-th-18`)
-            .outputOptions(['-q:v', '2'])
-    )
+    await ffRun([
+        '-y', '-i', tmpIn,
+        '-vf', `drawtext=text='${safe}':fontsize=28:fontcolor=white:borderw=2:bordercolor=black:x=w-tw-18:y=h-th-18`,
+        '-q:v', '2',
+        tmpOut
+    ])
     const result = await fs.readFile(tmpOut)
     await fs.remove(tmpIn)
     await fs.remove(tmpOut)
@@ -185,4 +175,4 @@ handler.command = ['s', 'sticker', 'stiker', 'wm', 'watermark', 'marca', 'toimag
 handler.tags    = ['tools']
 
 export default handler
-                        
+                    
