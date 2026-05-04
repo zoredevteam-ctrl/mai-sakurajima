@@ -1,105 +1,81 @@
-let handler = async (m, { args, command, conn, usedPrefix }) => {
+const isFacebook = (url = '') => /facebook\.com|fb\.watch/i.test(url)
+const clean = (str = '') => str.replace(/\\u0025/g, '%').replace(/\\\//g, '/').replace(/&amp;/g, '&')
+const toMobile = (url = '') => url.replace(/(www\.|m\.)?facebook\.com/, 'm.facebook.com')
+const toBasic  = (url = '') => url.replace(/(www\.|m\.)?facebook\.com/, 'mbasic.facebook.com')
 
-    if (!args[0]) {
+const agents = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
+]
+
+async function fetchHTML(url) {
+    const res = await fetch(url, {
+        headers: {
+            'User-Agent':      agents[Math.floor(Math.random() * agents.length)],
+            'Accept':          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'es-ES,es;q=0.9'
+        },
+        signal: AbortSignal.timeout(15000)
+    })
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    return await res.text()
+}
+
+function extractAll(html = '') {
+    const results = []
+    const regexes = [
+        /"browser_native_hd_url":"([^"]+)"/g,
+        /"playable_url_quality_hd":"([^"]+)"/g,
+        /"playable_url":"([^"]+)"/g,
+        /(https:\/\/video\.[^"]+\.fbcdn\.net[^"]+)/g
+    ]
+    for (const regex of regexes) {
+        let match
+        while ((match = regex.exec(html)) !== null) {
+            results.push(clean(match[1] || match[0]))
+        }
+    }
+    return results.filter(v => v.startsWith('http'))
+}
+
+let handler = async (m, { conn, args, usedPrefix, command }) => {
+
+    const url = args[0] || (m.quoted?.text ? m.quoted.text.trim() : '')
+
+    if (!url || !isFacebook(url)) {
         const thumb = await global.getIconThumb?.() || null
         const ctx   = global.getNewsletterCtx?.(thumb) || {}
         return conn.sendMessage(m.chat, {
             text:
                 `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
                 `✦ [ FACEBOOK DOWNLOADER ]\n` +
-                `  ⟡ Proporciona un enlace de Facebook.\n\n` +
+                `  ⟡ Proporciona un enlace válido de Facebook.\n\n` +
                 `✦ [ USO ]\n` +
                 `  ⟡ *${usedPrefix + command}* https://fb.watch/xxxxx`,
             contextInfo: ctx
         }, { quoted: m })
     }
 
-    const fbLink = args[0]
-    if (!/facebook\.com|fb\.watch/i.test(fbLink)) {
-        const thumb = await global.getIconThumb?.() || null
-        const ctx   = global.getNewsletterCtx?.(thumb) || {}
-        return conn.sendMessage(m.chat, {
-            text:
-                `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
-                `✦ [ ENLACE INVÁLIDO ]\n` +
-                `  ⟡ El enlace no corresponde a Facebook.`,
-            contextInfo: ctx
-        }, { quoted: m })
-    }
-
-    const TITLE_KEYS    = ['title', 'name', 'video_title', 'caption', 'description', 'text', 'nombre']
-    const REACTION_KEYS = ['likes', 'reactions', 'like_count', 'reaction_count', 'likes_count', 'total_reactions', 'views']
-    const URL_KEYS      = ['url', 'hd', 'sd', 'video_url', 'download_url', 'playable_url', 'link', 'src']
-
-    const deepFind = (obj, keys, depth = 0) => {
-        if (!obj || typeof obj !== 'object' || depth > 6) return null
-        for (const k of keys) {
-            if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') return obj[k]
-        }
-        for (const v of Object.values(obj)) {
-            if (typeof v === 'object') {
-                const found = deepFind(v, keys, depth + 1)
-                if (found) return found
-            }
-        }
-        return null
-    }
-
-    const findVideoUrl = (obj, depth = 0) => {
-        if (!obj || typeof obj !== 'object' || depth > 6) return null
-        if (Array.isArray(obj)) {
-            for (const item of obj) {
-                const found = findVideoUrl(item, depth + 1)
-                if (found) return found
-            }
-            return null
-        }
-        for (const k of URL_KEYS) {
-            const val = obj[k]
-            if (typeof val === 'string' && val.startsWith('http') && /\.(mp4|webm)|fbcdn\.net/.test(val)) return val
-        }
-        for (const v of Object.values(obj)) {
-            if (typeof v === 'object') {
-                const found = findVideoUrl(v, depth + 1)
-                if (found) return found
-            }
-        }
-        return null
-    }
-
     try {
-        const encoded = encodeURIComponent(fbLink)
+        let html   = await fetchHTML(url)
+        let videos = [...new Set(extractAll(html))]
 
-        const apiUrls = [
-            `https://rest.apicausas.xyz/api/v1/descargas/facebook?apikey=causa-db9690e010e31139&url=${encoded}`,
-            `https://eliasar-yt-api.vercel.app/api/facebookdl?link=${encoded}`,
-            `https://api.vreden.my.id/api/facebook?url=${encoded}`
-        ]
-
-        let videoUrl  = null
-        let metaTitle = null
-        let metaReact = null
-
-        for (const apiUrl of apiUrls) {
-            try {
-                const res = await fetch(apiUrl, { signal: AbortSignal.timeout(12000) })
-                if (!res.ok) continue
-                const json = await res.json()
-
-                const found = findVideoUrl(json)
-                if (!found) continue
-
-                videoUrl  = found
-                metaTitle = deepFind(json, TITLE_KEYS)
-                metaReact = deepFind(json, REACTION_KEYS)
-                break
-            } catch { continue }
+        if (!videos.length) {
+            html   = await fetchHTML(toMobile(url))
+            videos = [...new Set(extractAll(html))]
         }
 
-        if (!videoUrl) throw '[ ❌ ] No se pudo extraer el video. Las APIs podrían estar caídas.'
+        if (!videos.length) {
+            html   = await fetchHTML(toBasic(url))
+            videos = [...new Set(extractAll(html))]
+        }
+
+        if (!videos.length) throw new Error('El video es privado o no se pudo interceptar.')
+
+        const videoUrl = videos[0]
 
         const videoRes = await fetch(videoUrl, { signal: AbortSignal.timeout(60000) })
-        if (!videoRes.ok) throw '[ ❌ ] No se pudo descargar el video.'
+        if (!videoRes.ok) throw new Error('No se pudo descargar el video.')
 
         const buffer  = Buffer.from(await videoRes.arrayBuffer())
         const sizeKB  = buffer.length / 1024
@@ -107,16 +83,14 @@ let handler = async (m, { args, command, conn, usedPrefix }) => {
             ? `${(sizeKB / 1024).toFixed(2)} MB`
             : `${sizeKB.toFixed(2)} KB`
 
-        const title     = metaTitle ? String(metaTitle).slice(0, 60) : 'Sin título'
-        const reactions = metaReact ? String(metaReact) : 'N/A'
-        const linkShort = fbLink.length > 40 ? fbLink.slice(0, 40) + '…' : fbLink
+        const linkShort = url.length > 40 ? url.slice(0, 40) + '…' : url
 
         const caption =
             `\`ˏˋ ❏ ғɪʟᴇ ɪɴғᴏ ˎˊ -\`\n` +
             `━━━━━━━━━━━━━━━━━━\n` +
             `↬ \`℘ ᴜsᴇʀ:\` *${m.pushName}*\n` +
-            `↬ \`❁ Reactions:\` *${reactions}*\n` +
-            `↬ \`✦ ɴᴀᴍᴇ:\` *${title}*\n` +
+            `↬ \`❁ Reactions:\` *N/A*\n` +
+            `↬ \`✦ ɴᴀᴍᴇ:\` *Facebook Video*\n` +
             `↬ \`ⴵ sɪᴢᴇ:\` *${sizeFmt}*\n` +
             `↬ \`↳ ʟɪɴᴋ:\` *${linkShort}*\n` +
             `━━━━━━━━━━━━━━━━━━\n` +
@@ -134,13 +108,19 @@ let handler = async (m, { args, command, conn, usedPrefix }) => {
         }, { quoted: m })
 
     } catch (e) {
+        console.error('[FB ERROR]', e.message)
+
+        let detail = e.message || 'Error inesperado.'
+        if (e.message.includes('HTTP'))    detail = 'Error de conexión con los servidores de Facebook.'
+        if (e.message.includes('privado')) detail = 'El video es privado o requiere autenticación.'
+
         const thumb = await global.getIconThumb?.() || null
         const ctx   = global.getNewsletterCtx?.(thumb) || {}
         conn.sendMessage(m.chat, {
             text:
                 `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
                 `✦ [ ERROR DE DESCARGA ]\n` +
-                `  ⟡ ${typeof e === 'string' ? e : (e?.message || 'Error inesperado.')}`,
+                `  ⟡ ${detail}`,
             contextInfo: ctx
         }, { quoted: m })
     }
