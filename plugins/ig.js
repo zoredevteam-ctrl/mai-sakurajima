@@ -1,6 +1,7 @@
 // ❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎
-// ✦ [ PROTOCOLO DE EXTRACCIÓN MULTI-NODO V3 ]
+// ✦ [ PROTOCOLO DE EXTRACCIÓN MULTI-NODO V4 ]
 // ⟡ Design & Control: Adrien | XLR4-Security
+// ⟡ Integration: Yuki-API Node
 
 import fetch from 'node-fetch'
 
@@ -12,7 +13,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         return conn.sendMessage(m.chat, { text: syntax }, { quoted: m })
     }
 
-    // Validación de enlace
     if (!url.match(/instagram\.com\/(p|reel|share|tv|stories)\//)) {
         return conn.sendMessage(m.chat, { text: `❄︎ [ ERROR ] El enlace no es un flujo de Instagram válido.` }, { quoted: m })
     }
@@ -24,20 +24,17 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         
         if (!data) {
             await m.react('❌')
-            return conn.sendMessage(m.chat, { text: `❄︎ [ AGOTADO ] Ninguno de los 6 nodos respondió. Reintente más tarde.` }, { quoted: m })
+            return conn.sendMessage(m.chat, { text: `❄︎ [ AGOTADO ] Ninguno de los nodos (incluyendo Yuki-API) respondió. Servidores en mantenimiento.` }, { quoted: m })
         }
 
         await m.react('⬇️')
 
-        // Construcción de la interfaz visual XLR4
         const caption = `> ⟪❄︎⟫ *Hiyuki System: IG Download*\n\n` +
             `✦ [ REPORTE DE EXTRACCIÓN ]\n` +
             `${data.title ? `  ⟡ *Usuario:* ${data.title}\n` : ''}` +
-            `${data.like ? `  ⟡ *Likes:* ${data.like}\n` : ''}` +
-            `${data.comment ? `  ⟡ *Comments:* ${data.comment}\n` : ''}` +
             `${data.duration ? `  ⟡ *Duración:* ${data.duration}\n` : ''}` +
-            `  ⟡ *Formato:* ${data.format || 'mp4/jpg'}\n\n` +
-            `⟡ *Seguridad:* XLR4-Security Activa`
+            `  ⟡ *Estado:* Encriptación Exitosa\n` +
+            `  ⟡ *Seguridad:* XLR4-Security Activa`
 
         if (data.type === 'video') {
             await conn.sendMessage(m.chat, { 
@@ -46,7 +43,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
                 mimetype: 'video/mp4', 
                 fileName: 'hiyuki_ig.mp4' 
             }, { quoted: m })
-        } else if (data.type === 'image') {
+        } else {
             await conn.sendMessage(m.chat, { 
                 image: { url: data.url }, 
                 caption 
@@ -58,22 +55,31 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     } catch (e) {
         console.error('[XLR4 ERROR]', e)
         await m.react('❌')
-        conn.sendMessage(m.chat, { text: `❄︎ [ ERROR CRÍTICO ]\n⟡ Detalle: ${e.message}` }, { quoted: m })
+        conn.sendMessage(m.chat, { text: `❄︎ [ ERROR CRÍTICO ]\n⟡ Detalle: ${e.message.slice(0, 50)}` }, { quoted: m })
     }
 }
 
-// ── Funcción de obtención Multi-API ──────────────────────────────────────────
 async function getInstagramMedia(url) {
-    // Aseguramos que global.APIs exista para evitar crash
-    if (!global.APIs) global.APIs = {} 
-
     const apis = [
+        { 
+            // ⟡ NUEVA API YUKI-WABOT
+            endpoint: `https://api.yuki-wabot.my.id/api/dowloader/igdl?url=${encodeURIComponent(url)}`, 
+            extractor: res => {
+                const result = res?.result?.[0] || res?.result
+                if (!result?.url) return null
+                return { 
+                    type: result.url.includes('.mp4') || result.type === 'video' ? 'video' : 'image', 
+                    url: result.url,
+                    title: result.username || null 
+                }
+            }
+        },
         { 
             endpoint: `https://api.ryzendesu.vip/api/downloader/igdl?url=${encodeURIComponent(url)}`, 
             extractor: res => {
                 const item = res?.data?.[0]
                 if (!item?.url) return null
-                return { type: item.url.includes('.mp4') ? 'video' : 'image', url: item.url, format: 'mp4' }
+                return { type: item.url.includes('.mp4') ? 'video' : 'image', url: item.url }
             }
         },
         { 
@@ -81,15 +87,7 @@ async function getInstagramMedia(url) {
             extractor: res => {
                 if (!res.success || !res.result?.downloadUrl?.length) return null
                 const mediaUrl = res.result.downloadUrl[0]
-                return { type: res.result.metadata?.isVideo ? 'video' : 'image', title: res.result.metadata?.username, like: res.result.metadata?.like, url: mediaUrl }
-            }
-        },
-        { 
-            endpoint: `https://deliriustestapi.xyz/api/igdl?url=${encodeURIComponent(url)}`, 
-            extractor: res => {
-                const item = res.data?.[0]
-                if (!item?.url) return null
-                return { type: item.type === 'video' ? 'video' : 'image', url: item.url }
+                return { type: res.result.metadata?.isVideo ? 'video' : 'image', title: res.result.metadata?.username, url: mediaUrl }
             }
         }
     ]
@@ -100,9 +98,9 @@ async function getInstagramMedia(url) {
             const result = extractor(res)
             if (result && result.url) return result
         } catch (e) {
-            console.log(`❄︎ [ LOG ] Nodo fallido, saltando...`)
+            console.log(`❄︎ [ LOG ] Nodo inestable, saltando...`)
         }
-        await new Promise(r => setTimeout(r, 800))
+        await new Promise(r => setTimeout(r, 600))
     }
     return null
 }
