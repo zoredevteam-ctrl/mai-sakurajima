@@ -1,10 +1,9 @@
-import { File as MegaFile } from 'megajs'
 import { lookup as mimeLookup } from 'mime-types'
-import fs        from 'fs'
-import path      from 'path'
+import fs from 'fs'
+import path from 'path'
 import { tmpdir } from 'os'
-import { pipeline } from 'stream/promises'
 import { Transform } from 'stream'
+import { pipeline } from 'stream/promises'
 
 global.megaActiveDownloads = global.megaActiveDownloads || new Map()
 
@@ -12,14 +11,6 @@ function fmtBytes(b) {
   if (b >= 1073741824) return (b / 1073741824).toFixed(2) + ' GB'
   if (b >= 1048576)    return (b / 1048576).toFixed(2) + ' MB'
   return (b / 1024).toFixed(2) + ' KB'
-}
-
-function parseMegaError(err) {
-  const msg = err?.message || String(err)
-  if (msg.includes('EOVERQUOTA') || msg.includes('-18')) return '❌ Cuota de Mega excedida. Intenta más tarde.'
-  if (msg.includes('ENOENT')     || msg.includes('-9'))  return '❌ Archivo no encontrado en Mega.'
-  if (msg.includes('EACCESS')    || msg.includes('-11')) return '❌ Sin acceso al archivo (puede ser privado).'
-  return `❌ Error de Mega: ${msg}`
 }
 
 const getThumb = async () => {
@@ -57,6 +48,37 @@ const sendStyled = async (conn, m, text) => {
   }
 }
 
+async function resolveMega(url) {
+  const encoded = encodeURIComponent(url)
+  const apis = [
+    `https://api.vreden.my.id/api/mega?url=${encoded}`,
+    `https://api.siputzx.my.id/api/d/mega?url=${encoded}`,
+    `https://api.agatz.xyz/api/mega?url=${encoded}`
+  ]
+
+  for (const api of apis) {
+    try {
+      const res = await fetch(api, { signal: AbortSignal.timeout(15000) })
+      if (!res.ok) continue
+      const json = await res.json()
+
+      const dlUrl =
+        json.result?.url  || json.data?.url  || json.result?.link ||
+        json.data?.link   || json.url        || json.link         || null
+
+      const name =
+        json.result?.name || json.data?.name || json.result?.filename ||
+        json.data?.filename || json.name     || 'archivo_mega'
+
+      const size = json.result?.size || json.data?.size || json.size || 0
+
+      if (dlUrl?.startsWith('http')) return { dlUrl, name, size }
+    } catch { continue }
+  }
+
+  return null
+}
+
 const handler = async (m, { conn, args, usedPrefix, command }) => {
   if (/^(cancelar|stop)$/i.test(command)) {
     const quotedId = m.quoted?.id
@@ -84,22 +106,23 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
   let tempPath
 
   try {
-    let file
-    try {
-      file = MegaFile.fromURL(url)
-      await file.loadAttributes()
-    } catch (err) {
-      throw parseMegaError(err)
+    const meta = await resolveMega(url)
+    if (!meta) {
+      return sendStyled(conn, m,
+        `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
+        `✦ [ EXTRACCIÓN FALLIDA ]\n` +
+        `  ⟡ No se pudo obtener el enlace de descarga.\n` +
+        `  ⟡ Las APIs pueden estar caídas. Intenta más tarde.`
+      )
     }
 
-    const name      = file.name || 'archivo_mega'
-    const sizeBytes = file.size
-    const safeName  = name.replace(/[/\\:*?"<>|]/g, '_')
+    const { dlUrl, name, size } = meta
+    const safeName = name.replace(/[/\\:*?"<>|]/g, '_')
 
     const infoText =
       `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
       `☁️ *${name}*\n` +
-      `✦ Tamaño: ${fmtBytes(sizeBytes)}\n` +
+      `✦ Tamaño: ${size ? fmtBytes(size) : 'Desconocido'}\n` +
       `✦ Fuente: Mega\n\n` +
       `⏳ _Descargando archivo, espere..._\n` +
       `❄︎ _Enviado por ${global.botName || 'Hiyuki Celestial MD'}_`
@@ -109,26 +132,27 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
     tempPath = path.join(tmpdir(), `mega_${Date.now()}_${safeName}`)
 
-    const fileStream = file.download({ signal })
+    const dlRes = await fetch(dlUrl, { signal })
+    if (!dlRes.ok) throw new Error('No se pudo descargar el archivo.')
+
+    const sizeBytes = parseInt(dlRes.headers.get('content-length') || size || '0')
     let dlBytes = 0
     const dlStart = Date.now()
 
-    fileStream.on('data', chunk => {
-      dlBytes += chunk.length
-      const secs  = (Date.now() - dlStart) / 1000 || 0.001
-      const speed = dlBytes / secs
-      const pct   = (dlBytes / sizeBytes) * 100
-      process.stdout.write(
-        `\r[Mega] 📥 ${pct.toFixed(1)}% | ${fmtBytes(dlBytes)}/${fmtBytes(sizeBytes)} | ${fmtBytes(speed)}/s`
-      )
+    const dlStream = new Transform({
+      transform(chunk, _, cb) {
+        dlBytes += chunk.length
+        const secs  = (Date.now() - dlStart) / 1000 || 0.001
+        const speed = dlBytes / secs
+        const pct   = sizeBytes > 0 ? (dlBytes / sizeBytes) * 100 : 0
+        process.stdout.write(
+          `\r[Mega] 📥 ${pct.toFixed(1)}% | ${fmtBytes(dlBytes)}${sizeBytes ? '/' + fmtBytes(sizeBytes) : ''} | ${fmtBytes(speed)}/s`
+        )
+        cb(null, chunk)
+      }
     })
 
-    try {
-      await pipeline(fileStream, fs.createWriteStream(tempPath), { signal })
-    } catch (err) {
-      throw parseMegaError(err)
-    }
-
+    await pipeline(dlRes.body, dlStream, fs.createWriteStream(tempPath), { signal })
     console.log(`\n[Mega] ✅ Descarga completa: ${name}`)
 
     const realSize = fs.statSync(tempPath).size
@@ -179,4 +203,4 @@ handler.tags    = ['downloader']
 handler.command = /^(mega|mg|cancelar|stop)$/i
 
 export default handler
-                                  
+    
