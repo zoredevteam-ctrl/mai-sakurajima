@@ -62,3 +62,4 @@ handler.command = ['s', 'sticker', 'stiker']
 handler.tags    = ['tools']
 
 export default handler
+    
