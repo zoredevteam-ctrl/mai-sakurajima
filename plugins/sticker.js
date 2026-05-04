@@ -22,9 +22,7 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
             let packname = global.packname || 'Hiyuki System'
             let author = global.author || 'Adrien | XLR4'
 
-            const isVideo = /video/i.test(mime)
-            stiker = await sticker(img, false, packname, author, {}, isVideo)
-
+            stiker = await sticker(img, false, packname, author)
         } else if (args[0] && /https?:\/\//.test(args[0])) {
             stiker = await sticker(false, args[0], global.packname, global.author)
         } else {
@@ -35,15 +33,6 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         if (stiker) {
             await conn.sendMessage(m.chat, { sticker: stiker }, { quoted: m })
             await m.react('✅')
-
-            const canalLink = global.canalLink || ''
-            if (!canalLink) {
-                const canalMsg = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n✦ [ CANAL ]\n  ⟡ Falta el link del canal`
-                await conn.sendMessage(m.chat, { text: canalMsg }, { quoted: m })
-            } else {
-                const canalMsg = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n✦ [ CANAL ]\n  ⟡ Únete a nuestro canal:\n  ${canalLink}`
-                await conn.sendMessage(m.chat, { text: canalMsg }, { quoted: m })
-            }
         }
 
     } catch (e) {
