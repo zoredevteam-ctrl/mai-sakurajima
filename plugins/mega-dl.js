@@ -80,7 +80,7 @@ async function resolveMega(url) {
 }
 
 const handler = async (m, { conn, args, usedPrefix, command }) => {
-  if (/^(cancelar|stop)$/i.test(command)) {
+  if (command === 'cancelar' || command === 'stop') {
     const quotedId = m.quoted?.id
     if (!quotedId) return m.reply('❌ Responde al mensaje de progreso de la descarga.')
     const dl = global.megaActiveDownloads.get(quotedId)
@@ -200,7 +200,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
 handler.help    = ['mega <enlace>', 'mg <enlace>']
 handler.tags    = ['downloader']
-handler.command = /^(mega|mg|cancelar|stop)$/i
+handler.command = ['mega', 'mg', 'cancelar', 'stop']
 
 export default handler
-    
+                        
