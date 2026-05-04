@@ -30,49 +30,27 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
     await m.react('⏳')
 
     const encoded = encodeURIComponent(fbLink)
-    const apis = [
-        `https://rest.apicausas.xyz/api/v1/descargas/facebook?url=${encoded}&apikey=causa-db9690e010e31139`
-]
+    const apiKey  = global.APICAUSAS_KEY || '121-Nino-k'
+    const apiUrl  = `https://rest.apicausas.xyz/api/v1/descargas/facebook?url=${encoded}&apikey=${apiKey}`
 
     let videoUrl = null
     let title    = null
     let author   = null
     let likes    = null
 
-    for (const api of apis) {
-        try {
-            const res = await fetch(api, { signal: AbortSignal.timeout(12000) })
-            if (!res.ok) continue
-            const json = await res.json()
+    try {
+        const res = await fetch(apiUrl, { signal: AbortSignal.timeout(15000) })
+        if (!res.ok) throw new Error(`API respondió con HTTP ${res.status}`)
+        const json = await res.json()
 
-            const candidateUrl =
-                json.resultado?.url ||
-                json.data?.url      ||
-                json.result?.url    ||
-                (Array.isArray(json.data) ? json.data[0]?.url : null) ||
-                json.url
+        title  = json.resultado?.titulo || json.resultado?.title  || json.title  || null
+        author = json.resultado?.autor  || json.resultado?.author || json.author || null
+        likes  = json.resultado?.likes  || json.likes             || null
+        videoUrl = json.resultado?.url  || json.url               || null
 
-            if (!candidateUrl?.startsWith('http')) continue
-
-            try {
-                const headCheck = await fetch(candidateUrl, {
-                    method: 'HEAD',
-                    signal: AbortSignal.timeout(8000)
-                })
-                if (!headCheck.ok) continue
-            } catch {
-                continue
-            }
-
-            title  = json.resultado?.titulo || json.resultado?.title  || json.data?.title  || json.result?.title  || json.title       || title
-            author = json.resultado?.autor  || json.resultado?.author || json.data?.author || json.result?.author || json.author?.name || author
-            likes  = json.resultado?.likes  || json.data?.likes       || json.result?.likes || likes
-            videoUrl = candidateUrl
-            break
-
-        } catch {
-            continue
-        }
+        if (!videoUrl?.startsWith('http')) videoUrl = null
+    } catch (err) {
+        console.error('[FB-DL] Error APICausas:', err.message)
     }
 
     if (!videoUrl) {
@@ -84,7 +62,7 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
                 `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
                 `✦ [ EXTRACCIÓN FALLIDA ]\n` +
                 `  ⟡ No se pudo extraer el video.\n` +
-                `  ⟡ Las APIs o CDNs están caídos. Intenta más tarde.`,
+                `  ⟡ APICausas no devolvió resultado. Intenta más tarde.`,
             contextInfo: ctx
         }, { quoted: m })
     }
@@ -109,6 +87,7 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
     }
 
     const sizeText = (buffer.length / (1024 * 1024)).toFixed(2) + ' MB'
+
     const caption =
         `\`ˏˋ ❏ ғɪʟᴇ ɪɴғᴏ ˎˊ -\`\n` +
         `━━━━━━━━━━━━━━━━━━\n` +
@@ -138,4 +117,4 @@ handler.tags    = ['downloader']
 handler.command = ['fb', 'facebook', 'fbdl']
 
 export default handler
-                        
+                           
