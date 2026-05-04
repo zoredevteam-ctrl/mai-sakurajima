@@ -1,21 +1,23 @@
 import { downloadMediaMessage } from '@whiskeysockets/baileys'
 import { sticker, writeExif } from '../lib/sticker.js'
-import { spawn } from 'child_process'
+import ffmpeg from 'fluent-ffmpeg'
+import fs from 'fs-extra'
 import { tmpdir } from 'os'
-import { writeFileSync, readFileSync, unlinkSync } from 'fs'
 import { join } from 'path'
 import Crypto from 'crypto'
+import { Jimp } from 'jimp'
 
 const tmpFile = (ext) => join(tmpdir(), `${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.${ext}`)
 
-function ffRun(args) {
-    return new Promise((resolve, reject) => {
-        const p = spawn('ffmpeg', args)
-        let err = ''
-        p.stderr.on('data', d => err += d)
-        p.on('close', code => code === 0 ? resolve() : reject(new Error(err.slice(-400))))
+const ffRun = (inputPath, outputPath, configurator) =>
+    new Promise((resolve, reject) => {
+        const cmd = ffmpeg(inputPath)
+        configurator(cmd)
+        cmd.output(outputPath)
+            .on('end', resolve)
+            .on('error', reject)
+            .run()
     })
-}
 
 const sendStyled = async (conn, m, text) => {
     try {
@@ -46,36 +48,36 @@ const sendStyled = async (conn, m, text) => {
 }
 
 async function webpToPng(buffer) {
-    const tmpIn  = tmpFile('webp')
-    const tmpOut = tmpFile('png')
-    writeFileSync(tmpIn, buffer)
-    await ffRun(['-y', '-i', tmpIn, tmpOut])
-    const result = readFileSync(tmpOut)
-    unlinkSync(tmpIn)
-    unlinkSync(tmpOut)
-    return result
+    const img = await Jimp.read(buffer)
+    return img.getBuffer('image/png')
 }
 
 async function webpToGif(buffer) {
-    const tmpIn  = tmpFile('webp')
+    const png    = await webpToPng(buffer)
+    const tmpIn  = tmpFile('png')
     const tmpOut = tmpFile('gif')
-    writeFileSync(tmpIn, buffer)
-    await ffRun(['-y', '-i', tmpIn, '-vf', 'fps=10,scale=320:-1:flags=lanczos', tmpOut])
-    const result = readFileSync(tmpOut)
-    unlinkSync(tmpIn)
-    unlinkSync(tmpOut)
+    await fs.writeFile(tmpIn, png)
+    await ffRun(tmpIn, tmpOut, cmd =>
+        cmd.videoFilters('fps=10,scale=320:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse')
+    )
+    const result = await fs.readFile(tmpOut)
+    await fs.remove(tmpIn)
+    await fs.remove(tmpOut)
     return result
 }
 
 async function addWatermarkImg(buffer, texto) {
     const tmpIn  = tmpFile('jpg')
     const tmpOut = tmpFile('jpg')
-    writeFileSync(tmpIn, buffer)
+    await fs.writeFile(tmpIn, buffer)
     const safe = texto.replace(/'/g, "\\'").replace(/:/g, '\\:')
-    await ffRun(['-y', '-i', tmpIn, '-vf', `drawtext=text='${safe}':fontsize=28:fontcolor=white:borderw=2:bordercolor=black:x=w-tw-18:y=h-th-18`, '-q:v', '2', tmpOut])
-    const result = readFileSync(tmpOut)
-    unlinkSync(tmpIn)
-    unlinkSync(tmpOut)
+    await ffRun(tmpIn, tmpOut, cmd =>
+        cmd.videoFilters(`drawtext=text='${safe}':fontsize=28:fontcolor=white:borderw=2:bordercolor=black:x=w-tw-18:y=h-th-18`)
+            .outputOptions(['-q:v', '2'])
+    )
+    const result = await fs.readFile(tmpOut)
+    await fs.remove(tmpIn)
+    await fs.remove(tmpOut)
     return result
 }
 
@@ -183,4 +185,4 @@ handler.command = ['s', 'sticker', 'stiker', 'wm', 'watermark', 'marca', 'toimag
 handler.tags    = ['tools']
 
 export default handler
-        
+                        
