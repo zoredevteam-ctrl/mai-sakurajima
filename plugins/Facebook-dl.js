@@ -21,7 +21,7 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
             text:
                 `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
                 `✦ [ ERROR DE ENLACE ]\n` +
-                `  ⟡ El enlace no parece ser de Facebook.\n\n` +
+                `  ⟡ El enlace no parece ser de Facebook.\n` +
                 `  ⟡ Asegúrate de usar un link válido de *facebook.com* o *fb.watch*`,
             contextInfo: ctx
         }, { quoted: m })
@@ -30,11 +30,12 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
     await m.react('⏳')
 
     const encoded = encodeURIComponent(fbLink)
-    const apiKey  = global.APICAUSAS_KEY || '121-Nino-k'
+    const apiKey  = global.APICAUSAS_KEY || 'causa-db9690e010e31139'
     const apiUrl  = `https://rest.apicausas.xyz/api/v1/descargas/facebook?apikey=${apiKey}&url=${encoded}`
 
     let videoUrl  = null
     let title     = null
+    let author    = null
     let thumbnail = null
 
     try {
@@ -44,7 +45,9 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
 
         if (!json.status) throw new Error('API devolvió status false')
 
+        // Estructura real: { status, title, thumbnail, data: { url, quality, type }, author }
         title     = json.title     || null
+        author    = json.author    || null
         thumbnail = json.thumbnail || null
         videoUrl  = json.data?.url || null
 
@@ -61,7 +64,7 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
             text:
                 `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
                 `✦ [ EXTRACCIÓN FALLIDA ]\n` +
-                `  ⟡ No se pudo extraer el video.\n\n` +
+                `  ⟡ No se pudo extraer el video.\n` +
                 `  ⟡ APICausas no devolvió resultado. Intenta más tarde.`,
             contextInfo: ctx
         }, { quoted: m })
@@ -80,7 +83,7 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
             text:
                 `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
                 `✦ [ ERROR DE DESCARGA ]\n` +
-                `  ⟡ No se pudo descargar el archivo.\n\n` +
+                `  ⟡ No se pudo descargar el archivo.\n` +
                 `  ⟡ ${err.message}`,
             contextInfo: ctx
         }, { quoted: m })
@@ -88,12 +91,11 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
 
     const sizeText = (buffer.length / (1024 * 1024)).toFixed(2) + ' MB'
 
-    // Aquí se cambió el autor para que muestre el nombre del sistema en lugar de los datos de la API
     const caption =
         `\`ˏˋ ❏ ғɪʟᴇ ɪɴғᴏ ˎˊ -\`\n` +
         `━━━━━━━━━━━━━━━━━━\n` +
         `↬ \`✧ ᴛɪᴛᴜʟᴏ:\` *${title  || 'Sin título'}*\n` +
-        `↬ \`✦ ᴀᴜᴛᴏʀ:\` *Hiyuki System*\n` +
+        `↬ \`✦ ᴀᴜᴛᴏʀ:\` *${author || 'Desconocido'}*\n` +
         `↬ \`ⴵ sɪᴢᴇ:\` *${sizeText}*\n` +
         `↬ \`↳ ʟɪɴᴋ:\` *${fbLink}*\n` +
         `━━━━━━━━━━━━━━━━━━\n` +
@@ -117,4 +119,4 @@ handler.tags    = ['downloader']
 handler.command = ['fb', 'facebook', 'fbdl']
 
 export default handler
-    
+            
