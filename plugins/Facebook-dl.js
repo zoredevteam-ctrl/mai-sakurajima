@@ -31,7 +31,7 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
 
     const encoded = encodeURIComponent(fbLink)
     const apiKey  = global.APICAUSAS_KEY || '121-Nino-k'
-    const apiUrl  = `https://rest.apicausas.xyz/api/v1/descargas/facebook?url=${encoded}&apikey=${apiKey}`
+    const apiUrl  = `https://rest.apicausas.xyz/api/v1/descargas/facebook?apikey=${apiKey}&url=${encoded}`
 
     let videoUrl = null
     let title    = null
@@ -117,4 +117,4 @@ handler.tags    = ['downloader']
 handler.command = ['fb', 'facebook', 'fbdl']
 
 export default handler
-                           
+            
