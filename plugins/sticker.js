@@ -1,21 +1,15 @@
-// ❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎
-// ✦ [ PROTOCOLO DE CONVERSIÓN / STICKER ]
-// ⟡ Design & Control: Adrien | XLR4-Security
-
 import { downloadMediaMessage } from '@whiskeysockets/baileys'
 import { sticker } from '../lib/sticker.js'
 
 let handler = async (m, { conn, args, usedPrefix, command }) => {
     let stiker = false
     try {
-        // Determinamos si es un mensaje directo o citado
         let q = m.quoted ? m.quoted : m
         let mime = (q.msg || q).mimetype || q.mediaType || ''
 
         if (/webp|image|video/g.test(mime)) {
             await m.react('🪄')
-            
-            // Bypass del núcleo: Descarga directa desde Baileys
+
             let img = await downloadMediaMessage(
                 q,
                 'buffer',
@@ -27,8 +21,10 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
 
             let packname = global.packname || 'Hiyuki System'
             let author = global.author || 'Adrien | XLR4'
-            
-            stiker = await sticker(img, false, packname, author)
+
+            const isVideo = /video/i.test(mime)
+            stiker = await sticker(img, false, packname, author, {}, isVideo)
+
         } else if (args[0] && /https?:\/\//.test(args[0])) {
             stiker = await sticker(false, args[0], global.packname, global.author)
         } else {
@@ -39,6 +35,15 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
         if (stiker) {
             await conn.sendMessage(m.chat, { sticker: stiker }, { quoted: m })
             await m.react('✅')
+
+            const canalLink = global.canalLink || ''
+            if (!canalLink) {
+                const canalMsg = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n✦ [ CANAL ]\n  ⟡ Falta el link del canal`
+                await conn.sendMessage(m.chat, { text: canalMsg }, { quoted: m })
+            } else {
+                const canalMsg = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n✦ [ CANAL ]\n  ⟡ Únete a nuestro canal:\n  ${canalLink}`
+                await conn.sendMessage(m.chat, { text: canalMsg }, { quoted: m })
+            }
         }
 
     } catch (e) {
