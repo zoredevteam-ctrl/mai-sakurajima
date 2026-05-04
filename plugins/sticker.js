@@ -2,11 +2,10 @@ import { downloadMediaMessage } from '@whiskeysockets/baileys'
 import { sticker } from '../lib/sticker.js'
 import { spawn } from 'child_process'
 import { tmpdir } from 'os'
-import { writeFileSync, readFileSync, unlinkSync, existsSync } from 'fs'
+import { writeFileSync, readFileSync, unlinkSync } from 'fs'
 import { join } from 'path'
 import Crypto from 'crypto'
-import FormData from 'form-data'
-import * as cheerio from 'cheerio'
+import webp from 'node-webpmux'
 
 const tmpFile = (ext) => join(tmpdir(), `${Crypto.randomBytes(6).readUIntLE(0, 6).toString(36)}.${ext}`)
 
@@ -38,62 +37,81 @@ const sendStyled = async (conn, m, text) => {
     }
 }
 
-async function addWatermark(buffer, texto) {
-    const tmpIn  = tmpFile('jpg')
-    const tmpOut = tmpFile('jpg')
-    writeFileSync(tmpIn, buffer)
-
-    const safeText = texto.replace(/'/g, "\\'").replace(/:/g, '\\:')
-
-    await new Promise((resolve, reject) => {
-        const p = spawn('ffmpeg', [
-            '-y', '-i', tmpIn,
-            '-vf', `drawtext=text='${safeText}':fontsize=28:fontcolor=white:borderw=2:bordercolor=black:x=w-tw-18:y=h-th-18`,
-            '-q:v', '2',
-            tmpOut
-        ])
+function ffmpegRun(args) {
+    return new Promise((resolve, reject) => {
+        const p = spawn('ffmpeg', args)
         let err = ''
         p.stderr.on('data', d => err += d)
-        p.on('close', code => code === 0 ? resolve() : reject(new Error(err)))
+        p.on('close', code => code === 0 ? resolve() : reject(new Error(err.slice(-300))))
     })
+}
 
+async function webpToPng(buffer) {
+    const tmpIn  = tmpFile('webp')
+    const tmpOut = tmpFile('png')
+    writeFileSync(tmpIn, buffer)
+    await ffmpegRun(['-y', '-i', tmpIn, tmpOut])
     const result = readFileSync(tmpOut)
     unlinkSync(tmpIn)
     unlinkSync(tmpOut)
     return result
 }
 
-async function webp2mp4(buffer) {
-    const form = new FormData()
-    form.append('new-image-url', '')
-    form.append('new-image', buffer, 'image.webp')
-    const res   = await fetch('https://ezgif.com/webp-to-mp4', { method: 'POST', body: form })
-    const $     = cheerio.load(await res.text())
-    const form2 = new FormData()
-    const obj   = {}
-    $('form input[name]').each((_, el) => { obj[$(el).attr('name')] = $(el).val(); form2.append($(el).attr('name'), $(el).val()) })
-    const res2  = await fetch('https://ezgif.com/webp-to-mp4/' + obj.file, { method: 'POST', body: form2 })
-    const $2    = cheerio.load(await res2.text())
-    const url   = new URL($2('div#output > p.outfile > video > source').attr('src'), res2.url).toString()
-    return Buffer.from(await (await fetch(url)).arrayBuffer())
+async function webpToMp4(buffer) {
+    const tmpIn  = tmpFile('webp')
+    const tmpOut = tmpFile('mp4')
+    writeFileSync(tmpIn, buffer)
+    await ffmpegRun(['-y', '-i', tmpIn, '-vf', 'scale=512:512:force_original_aspect_ratio=decrease', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-an', tmpOut])
+    const result = readFileSync(tmpOut)
+    unlinkSync(tmpIn)
+    unlinkSync(tmpOut)
+    return result
 }
 
-async function webp2png(buffer) {
-    const form = new FormData()
-    form.append('new-image-url', '')
-    form.append('new-image', buffer, 'image.webp')
-    const res   = await fetch('https://ezgif.com/webp-to-png', { method: 'POST', body: form })
-    const $     = cheerio.load(await res.text())
-    const form2 = new FormData()
-    const obj   = {}
-    $('form input[name]').each((_, el) => { obj[$(el).attr('name')] = $(el).val(); form2.append($(el).attr('name'), $(el).val()) })
-    const res2  = await fetch('https://ezgif.com/webp-to-png/' + obj.file, { method: 'POST', body: form2 })
-    const $2    = cheerio.load(await res2.text())
-    const url   = new URL($2('div#output > p.outfile > img').attr('src'), res2.url).toString()
-    return Buffer.from(await (await fetch(url)).arrayBuffer())
+async function addWatermarkImg(buffer, texto) {
+    const tmpIn  = tmpFile('jpg')
+    const tmpOut = tmpFile('jpg')
+    writeFileSync(tmpIn, buffer)
+    const safe = texto.replace(/'/g, "\\'").replace(/:/g, '\\:')
+    await ffmpegRun(['-y', '-i', tmpIn, '-vf', `drawtext=text='${safe}':fontsize=28:fontcolor=white:borderw=2:bordercolor=black:x=w-tw-18:y=h-th-18`, '-q:v', '2', tmpOut])
+    const result = readFileSync(tmpOut)
+    unlinkSync(tmpIn)
+    unlinkSync(tmpOut)
+    return result
 }
 
-let handler = async (m, { conn, args, usedPrefix, command }) => {
+async function rewriteStickerExif(buffer, packname, author) {
+    const tmpIn  = tmpFile('webp')
+    const tmpOut = tmpFile('webp')
+    writeFileSync(tmpIn, buffer)
+
+    const img      = new webp.Image()
+    const json     = {
+        'sticker-pack-id'        : `hiyuki.${Date.now()}`,
+        'sticker-pack-name'      : packname,
+        'sticker-pack-publisher' : author,
+        'emojis'                 : ['🌟']
+    }
+    const exifAttr = Buffer.from([
+        0x49,0x49,0x2a,0x00,0x08,0x00,0x00,0x00,
+        0x01,0x00,0x41,0x57,0x07,0x00,0x00,0x00,
+        0x00,0x00,0x16,0x00,0x00,0x00
+    ])
+    const jsonBuf  = Buffer.from(JSON.stringify(json), 'utf-8')
+    const exif     = Buffer.concat([exifAttr, jsonBuf])
+    exif.writeUIntLE(jsonBuf.length, 14, 4)
+
+    await img.load(tmpIn)
+    unlinkSync(tmpIn)
+    img.exif = exif
+    await img.save(tmpOut)
+
+    const result = readFileSync(tmpOut)
+    unlinkSync(tmpOut)
+    return result
+}
+
+let handler = async (m, { conn, args, usedPrefix, command, db }) => {
     const isWm    = /^(wm|watermark|marca)$/.test(command)
     const isToImg = /^(toimagen|toimg|s2img)$/.test(command)
     let stiker = false
@@ -115,31 +133,47 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
             if (!buf) throw new Error('No se pudo descargar el sticker.')
 
             if (q.msg?.isAnimated) {
-                const mp4 = await webp2mp4(buf)
+                const mp4 = await webpToMp4(buf)
                 await conn.sendMessage(m.chat, { video: mp4, caption: '> ✎ 「✿𝐇𝐢𝐲𝐮𝐤𝐢 এ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐩𝐚𝐭𝐫𝐨𝐧✿」', gifPlayback: true }, { quoted: m })
             } else {
-                const png = await webp2png(buf)
+                const png = await webpToPng(buf)
                 await conn.sendMessage(m.chat, { image: png, caption: '> ✎ 「✿𝐇𝐢𝐲𝐮𝐤𝐢 এ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐩𝐚𝐭𝐫𝐨𝐧✿」' }, { quoted: m })
             }
             return await m.react('✅')
         }
 
         if (isWm) {
-            if (!/image/.test(mime)) return sendStyled(conn, m,
-                `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n✦ [ WATERMARK ]\n  ⟡ Cita o envía una *imagen* con *${usedPrefix + command} <texto>*\n  ⟡ Si no pones texto se usará el nombre del bot.`
-            )
-
-            await m.react('🕒')
             const buf = await downloadMediaMessage(q, 'buffer', {}, { logger: console, reuploadRequest: conn.updateMediaMessage })
             if (!buf) throw new Error('No se pudo extraer el buffer.')
 
-            const texto = args.join(' ').trim() || global.botName || 'Hiyuki Celestial MD'
-            const out   = await addWatermark(buf, texto)
+            // Sticker → reescribir EXIF con datos del usuario
+            if (/webp/.test(mime)) {
+                await m.react('🕒')
 
-            await conn.sendMessage(m.chat, {
-                image:   out,
-                caption: '> ✎ 「✿𝐇𝐢𝐲𝐮𝐤𝐢 এ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐩𝐚𝐭𝐫𝐨𝐧✿」'
-            }, { quoted: m })
+                const now      = new Date()
+                const fecha    = now.toLocaleDateString('es-ES', { day: 'numeric', month: 'numeric', year: 'numeric' })
+                const hora     = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+                const usuario  = m.pushName || m.sender.split('@')[0]
+                const botName  = global.botName || 'Hiyuki Celestial MD'
+                const grupo    = m.isGroup ? (await conn.groupMetadata(m.chat).catch(() => ({}))).subject || m.chat : 'MD'
+
+                const packname = `✿ Usuario: ${usuario}\n✿ Bot: ${botName}\n✿ Fecha: ${fecha}`
+                const author   = `${hora} • ${grupo}`
+
+                const result = await rewriteStickerExif(buf, packname, author)
+                await conn.sendMessage(m.chat, { sticker: result }, { quoted: m })
+                return await m.react('✅')
+            }
+
+            // Imagen → watermark de texto
+            if (!/image/.test(mime)) return sendStyled(conn, m,
+                `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n✦ [ WATERMARK ]\n  ⟡ Cita una *imagen* o *sticker* con *${usedPrefix + command}*`
+            )
+
+            await m.react('🕒')
+            const texto = args.join(' ').trim() || global.botName || 'Hiyuki Celestial MD'
+            const out   = await addWatermarkImg(buf, texto)
+            await conn.sendMessage(m.chat, { image: out, caption: '> ✎ 「✿𝐇𝐢𝐲𝐮𝐤𝐢 এ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐩𝐚𝐭𝐫𝐨𝐧✿」' }, { quoted: m })
             return await m.react('✅')
         }
 
@@ -168,9 +202,9 @@ let handler = async (m, { conn, args, usedPrefix, command }) => {
     }
 }
 
-handler.help    = ['s', 'wm <texto>', 'toimagen']
+handler.help    = ['s', 'wm', 'toimagen']
 handler.command = ['s', 'sticker', 'stiker', 'wm', 'watermark', 'marca', 'toimagen', 'toimg', 's2img']
 handler.tags    = ['tools']
 
 export default handler
-            
+                         
