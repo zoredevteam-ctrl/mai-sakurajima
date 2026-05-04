@@ -1,61 +1,52 @@
-// plugins/check.js
-import fs from 'fs'
-import path from 'path'
-import { exec } from 'child_process'
-import { promisify } from 'util'
+import { readdirSync, existsSync } from 'fs';
+import { join } from 'path';
 
-// Convertimos exec a promesas para manejar el asincronismo limpiamente
-const execPromise = promisify(exec)
-
-let handler = async (m, { conn, isOwner }) => {
-    if (!isOwner) return
-
-    const pluginsDir = './plugins'
-    const files = fs.readdirSync(pluginsDir).filter(f => f.endsWith('.js'))
-
-    await m.react('🔍')
-
-    let report = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n`
-    report += `✦ [ ANÁLISIS DE SINTAXIS NATIVO ]\n`
-
-    let errors = []
-    let total = 0
+const handler = async (m, { conn, usedPrefix }) => {
+    const pluginsFolder = join(process.cwd(), 'plugins');
+    const files = readdirSync(pluginsFolder).filter(file => file.endsWith('.js'));
+    
+    // Lista de archivos cargados actualmente en el sistema (sin la extensión .js)
+    const loadedPlugins = Object.keys(global.plugins).map(p => p.replace('.js', ''));
+    
+    let report = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n`;
+    report += `✦ [ REPORTE DE CARGA CRÍTICA ]\n`;
+    
+    let failures = [];
 
     for (const file of files) {
-        total++
-        const filePath = path.join(pluginsDir, file)
-
-        try {
-            // "node --check" compila el archivo para buscar errores, pero no lo ejecuta.
-            // Es la forma más segura de validar ESM.
-            await execPromise(`node --check "${filePath}"`)
-        } catch (e) {
-            // Si hay un error de sintaxis, node lo arroja en stderr
-            const errText = e.stderr || e.message
-            
-            // Extraemos la línea del error (ej. file.js:45)
-            const matchLine = errText.match(/:(\d+)/)
-            const line = matchLine ? matchLine[1] : '?'
-            
-            // Extraemos el tipo de error (ej. SyntaxError: Unexpected token)
-            const matchError = errText.match(/(SyntaxError:.*?)\n/i) || errText.match(/(Error:.*?)\n/i)
-            const errorDesc = matchError ? matchError[1] : 'Error de Exportación/Sintaxis'
-
-            errors.push(`❌ *${file}*\n   ⟡ Línea: ${line}\n   ⟡ Detalle: ${errorDesc.trim()}`)
+        const fileName = file.replace('.js', '');
+        
+        // Si el archivo NO está en la memoria del bot
+        if (!global.plugins[file] && !global.plugins[fileName]) {
+            try {
+                // Intentamos un import dinámico para ver el error real
+                const path = `file://${join(pluginsFolder, file)}?t=${Date.now()}`;
+                await import(path);
+                
+                // Si llega aquí es porque el archivo está bien pero quizás no tiene el formato correcto
+                failures.push(`  ⟡ Archivo: ${file}\n  ⟡ Error: Formato no reconocido (Falta export default o handler)`);
+            } catch (e) {
+                // Aquí capturamos el error de consola que tanto buscas
+                failures.push(`  ⟡ Archivo: ${file}\n  ⟡ Error: ${e.message.split('\n')[0]}`);
+            }
         }
     }
 
-    if (errors.length === 0) {
-        report += `  ⟡ Módulos analizados: ${total}\n  ⟡ Estado: *ÓPTIMO*\n\n> Todos los archivos .js tienen una sintaxis perfecta.`
+    if (failures.length === 0) {
+        report += `  ⟡ Estado: [ TODO CARGADO ]\n`;
+        report += `  ⟡ No hay discrepancias entre la carpeta y la memoria.`;
     } else {
-        report += `  ⟡ Módulos analizados: ${total}\n  ⟡ Fallos detectados: ${errors.length}\n\n`
-        report += errors.join('\n\n')
-        report += `\n\n> Corrige los errores de sintaxis marcados.`
+        report += `  ⟡ Módulos con fallas: ${failures.length}\n\n`;
+        report += `✦ [ LISTA DE ERRORES ]\n\n`;
+        report += failures.join('\n\n');
     }
 
-    return conn.sendMessage(m.chat, { text: report }, { quoted: m })
-}
+    report += `\n\n❄️ Tip: Si el error es "Cannot find module", instala la dependencia con: npm install [nombre]`;
 
-handler.command = ['check', 'debug', 'verificar']
-handler.owner = true
-export default handler
+    await m.reply(report);
+};
+
+handler.command = /^(check|verificar|errors)$/i;
+handler.rowner = true; // Solo tú puedes verlo
+
+export default handler;
