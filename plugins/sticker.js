@@ -136,4 +136,4 @@ handler.command = ['s', 'sticker', 'stiker', 'wm', 'watermark', 'marca', 'toimag
 handler.tags    = ['tools']
 
 export default handler
-        
+                                                   
