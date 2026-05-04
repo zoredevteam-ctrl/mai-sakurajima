@@ -31,11 +31,8 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
 
     const encoded = encodeURIComponent(fbLink)
     const apis = [
-        `https://rest.apicausas.xyz/api/v1/descargas/facebook?url=${encoded}&apikey=causa-db9690e010e31139`,
-        `https://eliasar-yt-api.vercel.app/api/facebookdl?link=${encoded}`,
-        `https://api.vreden.my.id/api/facebook?url=${encoded}`,
-        `https://api.agatz.xyz/api/facebook?url=${encoded}`
-    ]
+        `https://rest.apicausas.xyz/api/v1/descargas/facebook?url=${encoded}&apikey=causa-db9690e010e31139`
+]
 
     let videoUrl = null
     let title    = null
