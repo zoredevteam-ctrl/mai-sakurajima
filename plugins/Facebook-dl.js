@@ -8,13 +8,13 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
                 `✦ [ FACEBOOK DOWNLOADER ]\n` +
                 `  ⟡ Proporciona un enlace de Facebook.\n\n` +
                 `  ⟡ Uso: *${usedPrefix + command}* https://fb.watch/xxxx\n` +
-                `  ⟡ Uso: *${usedPrefix + command}* https://www.facebook.com/share/r/xxxx`,
+                `  ⟡ Uso: *${usedPrefix + command}* https://www.facebook.com/watch/?v=xxx`,
             contextInfo: ctx
         }, { quoted: m })
     }
 
     const fbLink = args[0]
-    if (!/facebook\.com|fb\.watch/i.test(fbLink)) {
+    if (!/facebook\.com|fb\.watch/g.test(fbLink)) {
         const thumb = await global.getIconThumb?.() || null
         const ctx   = global.getNewsletterCtx?.(thumb) || {}
         return conn.sendMessage(m.chat, {
@@ -27,37 +27,44 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
         }, { quoted: m })
     }
 
-    await m.react('⏳')
-
     const encoded = encodeURIComponent(fbLink)
-    const apiKey  = global.APICAUSAS_KEY || 'causa-db9690e010e31139'
-    const apiUrl  = `https://rest.apicausas.xyz/api/v1/descargas/facebook?apikey=${apiKey}&url=${encoded}`
 
-    let videoUrl  = null
-    let title     = null
-    let author    = null
-    let thumbnail = null
+    const apis = [
+        `https://rest.apicausas.xyz/api/v1/descargas/facebook?url=${encoded}&apikey=causa-121-Nino-k`,
+        `https://eliasar-yt-api.vercel.app/api/facebookdl?link=${encoded}`,
+        `https://api.vreden.my.id/api/facebook?url=${encoded}`
+    ]
 
-    try {
-        const res = await fetch(apiUrl, { signal: AbortSignal.timeout(15000) })
-        if (!res.ok) throw new Error(`API respondió con HTTP ${res.status}`)
-        const json = await res.json()
+    let videoUrl = null
+    let title    = null
+    let author   = null
+    let likes    = null
 
-        if (!json.status) throw new Error('API devolvió status false')
+    for (const api of apis) {
+        try {
+            const res = await fetch(api)
+            if (!res.ok) continue
+            const json = await res.json()
 
-        // Estructura real: { status, title, thumbnail, data: { url, quality, type }, author }
-        title     = json.title     || null
-        author    = json.author    || null
-        thumbnail = json.thumbnail || null
-        videoUrl  = json.data?.url || null
+            title  = json.resultado?.titulo || json.resultado?.title  || json.data?.title   || json.result?.title  || json.title       || title
+            author = json.resultado?.autor  || json.resultado?.author || json.data?.author  || json.result?.author || json.author?.name || author
+            likes  = json.resultado?.likes  || json.data?.likes       || json.result?.likes || likes
 
-        if (!videoUrl?.startsWith('http')) videoUrl = null
-    } catch (err) {
-        console.error('[FB-DL] Error APICausas:', err.message)
+            videoUrl =
+                json.resultado?.url ||
+                json.data?.url      ||
+                json.result?.url    ||
+                (Array.isArray(json.data) ? json.data[0]?.url : null) ||
+                json.url
+
+            if (videoUrl?.startsWith('http')) break
+        } catch (err) {
+            console.error(`[FB-DL] Fallo en API: ${api}`, err.message)
+            continue
+        }
     }
 
     if (!videoUrl) {
-        await m.react('❌')
         const thumb = await global.getIconThumb?.() || null
         const ctx   = global.getNewsletterCtx?.(thumb) || {}
         return conn.sendMessage(m.chat, {
@@ -65,37 +72,33 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
                 `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
                 `✦ [ EXTRACCIÓN FALLIDA ]\n` +
                 `  ⟡ No se pudo extraer el video.\n` +
-                `  ⟡ APICausas no devolvió resultado. Intenta más tarde.`,
+                `  ⟡ Las APIs pueden estar caídas. Intenta más tarde.`,
             contextInfo: ctx
         }, { quoted: m })
     }
 
-    let buffer
-    try {
-        const videoRes = await fetch(videoUrl, { signal: AbortSignal.timeout(60000) })
-        if (!videoRes.ok) throw new Error(`HTTP ${videoRes.status}`)
-        buffer = Buffer.from(await videoRes.arrayBuffer())
-    } catch (err) {
-        await m.react('❌')
+    const videoRes = await fetch(videoUrl)
+    if (!videoRes.ok) {
         const thumb = await global.getIconThumb?.() || null
         const ctx   = global.getNewsletterCtx?.(thumb) || {}
         return conn.sendMessage(m.chat, {
             text:
                 `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
                 `✦ [ ERROR DE DESCARGA ]\n` +
-                `  ⟡ No se pudo descargar el archivo.\n` +
-                `  ⟡ ${err.message}`,
+                `  ⟡ El servidor no permitió descargar el archivo.`,
             contextInfo: ctx
         }, { quoted: m })
     }
 
+    const buffer   = Buffer.from(await videoRes.arrayBuffer())
     const sizeText = (buffer.length / (1024 * 1024)).toFixed(2) + ' MB'
 
     const caption =
         `\`ˏˋ ❏ ғɪʟᴇ ɪɴғᴏ ˎˊ -\`\n` +
         `━━━━━━━━━━━━━━━━━━\n` +
-        `↬ \`✧ ᴛɪᴛᴜʟᴏ:\` *${title  || 'Sin título'}*\n` +
-        `↬ \`✦ ᴀᴜᴛᴏʀ:\` *${author || 'Desconocido'}*\n` +
+        `↬ \`✧ ᴀᴜᴛᴏʀ:\` *${author || 'Desconocido'}*\n` +
+        `↬ \`✦ ᴛɪᴛᴜʟᴏ:\` *${title  || 'Sin título'}*\n` +
+        `↬ \`ღ ʟɪᴋᴇs:\` *${likes  || 'N/A'}*\n` +
         `↬ \`ⴵ sɪᴢᴇ:\` *${sizeText}*\n` +
         `↬ \`↳ ʟɪɴᴋ:\` *${fbLink}*\n` +
         `━━━━━━━━━━━━━━━━━━\n` +
@@ -104,7 +107,6 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
     const thumb = await global.getIconThumb?.() || null
     const ctx   = global.getNewsletterCtx?.(thumb) || {}
 
-    await m.react('✅')
     await conn.sendMessage(m.chat, {
         video:    buffer,
         caption:  caption,
@@ -119,4 +121,4 @@ handler.tags    = ['downloader']
 handler.command = ['fb', 'facebook', 'fbdl']
 
 export default handler
-            
+
