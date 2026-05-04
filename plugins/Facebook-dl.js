@@ -27,52 +27,72 @@ let handler = async (m, { args, command, conn, usedPrefix }) => {
         }, { quoted: m })
     }
 
+    const TITLE_KEYS    = ['title', 'name', 'video_title', 'caption', 'description', 'text', 'nombre']
+    const REACTION_KEYS = ['likes', 'reactions', 'like_count', 'reaction_count', 'likes_count', 'total_reactions', 'views']
+    const URL_KEYS      = ['url', 'hd', 'sd', 'video_url', 'download_url', 'playable_url', 'link', 'src']
+
+    const deepFind = (obj, keys, depth = 0) => {
+        if (!obj || typeof obj !== 'object' || depth > 6) return null
+        for (const k of keys) {
+            if (obj[k] !== undefined && obj[k] !== null && obj[k] !== '') return obj[k]
+        }
+        for (const v of Object.values(obj)) {
+            if (typeof v === 'object') {
+                const found = deepFind(v, keys, depth + 1)
+                if (found) return found
+            }
+        }
+        return null
+    }
+
+    const findVideoUrl = (obj, depth = 0) => {
+        if (!obj || typeof obj !== 'object' || depth > 6) return null
+        if (Array.isArray(obj)) {
+            for (const item of obj) {
+                const found = findVideoUrl(item, depth + 1)
+                if (found) return found
+            }
+            return null
+        }
+        for (const k of URL_KEYS) {
+            const val = obj[k]
+            if (typeof val === 'string' && val.startsWith('http') && /\.(mp4|webm)|fbcdn\.net/.test(val)) return val
+        }
+        for (const v of Object.values(obj)) {
+            if (typeof v === 'object') {
+                const found = findVideoUrl(v, depth + 1)
+                if (found) return found
+            }
+        }
+        return null
+    }
+
     try {
         const encoded = encodeURIComponent(fbLink)
 
-        const apis = [
-            {
-                url:   `https://rest.apicausas.xyz/api/v1/descargas/facebook?apikey=causa-db9690e010e31139&url=${encoded}`,
-                parse: (json) => ({
-                    videoUrl:  json.resultado?.url   || json.data?.url || json.url || null,
-                    title:     json.resultado?.title || json.data?.title || json.title || null,
-                    reactions: json.resultado?.likes || json.data?.likes || null,
-                })
-            },
-            {
-                url:   `https://eliasar-yt-api.vercel.app/api/facebookdl?link=${encoded}`,
-                parse: (json) => ({
-                    videoUrl:  json.data?.url || (Array.isArray(json.data) ? json.data[0]?.url : null) || json.url || null,
-                    title:     json.data?.title || json.title || null,
-                    reactions: json.data?.likes || null,
-                })
-            },
-            {
-                url:   `https://api.vreden.my.id/api/facebook?url=${encoded}`,
-                parse: (json) => ({
-                    videoUrl:  json.result?.url   || json.data?.url || json.url || null,
-                    title:     json.result?.title || json.data?.title || json.title || null,
-                    reactions: json.result?.likes || null,
-                })
-            }
+        const apiUrls = [
+            `https://rest.apicausas.xyz/api/v1/descargas/facebook?apikey=causa-db9690e010e31139&url=${encoded}`,
+            `https://eliasar-yt-api.vercel.app/api/facebookdl?link=${encoded}`,
+            `https://api.vreden.my.id/api/facebook?url=${encoded}`
         ]
 
         let videoUrl  = null
         let metaTitle = null
         let metaReact = null
 
-        for (const api of apis) {
+        for (const apiUrl of apiUrls) {
             try {
-                const res = await fetch(api.url, { signal: AbortSignal.timeout(12000) })
+                const res = await fetch(apiUrl, { signal: AbortSignal.timeout(12000) })
                 if (!res.ok) continue
                 const json = await res.json()
-                const data = api.parse(json)
-                if (data.videoUrl?.startsWith('http')) {
-                    videoUrl  = data.videoUrl
-                    metaTitle = data.title
-                    metaReact = data.reactions
-                    break
-                }
+
+                const found = findVideoUrl(json)
+                if (!found) continue
+
+                videoUrl  = found
+                metaTitle = deepFind(json, TITLE_KEYS)
+                metaReact = deepFind(json, REACTION_KEYS)
+                break
             } catch { continue }
         }
 
@@ -87,18 +107,18 @@ let handler = async (m, { args, command, conn, usedPrefix }) => {
             ? `${(sizeKB / 1024).toFixed(2)} MB`
             : `${sizeKB.toFixed(2)} KB`
 
-        const title     = metaTitle || 'Sin título'
+        const title     = metaTitle ? String(metaTitle).slice(0, 60) : 'Sin título'
         const reactions = metaReact ? String(metaReact) : 'N/A'
         const linkShort = fbLink.length > 40 ? fbLink.slice(0, 40) + '…' : fbLink
 
         const caption =
-            `ˏˋ ❏ ғɪʟᴇ ɪɴғᴏ ˎˊ -\n` +
+            `\`ˏˋ ❏ ғɪʟᴇ ɪɴғᴏ ˎˊ -\`\n` +
             `━━━━━━━━━━━━━━━━━━\n` +
-            `↬ ℘ ᴜsᴇʀ: *_${m.pushName}_*\n` +
-            `↬ ❁ Reactions: *_${reactions}_*\n` +
-            `↬ ✦ ɴᴀᴍᴇ: *_${title}_*\n` +
-            `↬ ⴵ sɪᴢᴇ: *_${sizeFmt}_*\n` +
-            `↬ ↳ ʟɪɴᴋ: *_${linkShort}_*\n` +
+            `↬ \`℘ ᴜsᴇʀ:\` *${m.pushName}*\n` +
+            `↬ \`❁ Reactions:\` *${reactions}*\n` +
+            `↬ \`✦ ɴᴀᴍᴇ:\` *${title}*\n` +
+            `↬ \`ⴵ sɪᴢᴇ:\` *${sizeFmt}*\n` +
+            `↬ \`↳ ʟɪɴᴋ:\` *${linkShort}*\n` +
             `━━━━━━━━━━━━━━━━━━\n` +
             `> ✎ 「✿𝐇𝐢𝐲𝐮𝐤𝐢 এ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐩𝐚𝐭𝐫𝐨𝐧✿」`
 
@@ -131,4 +151,4 @@ handler.tags    = ['downloader']
 handler.command = ['fb', 'facebook', 'fbdl']
 
 export default handler
-              
+    
