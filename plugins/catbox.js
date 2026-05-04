@@ -1,12 +1,8 @@
-// ❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎
-// ✦ [ PROTOCOLO DE SUBIDA: CATBOX.MOE ]
-// ⟡ Design & Control: Adrien | XLR4-Security
-
 import fetch from 'node-fetch'
 import FormData from 'form-data'
+import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 
 let handler = async (m, { conn, usedPrefix, command }) => {
-    // Verificamos si el usuario respondió a un mensaje con multimedia
     let q = m.quoted ? m.quoted : m
     let mime = (q.msg || q).mimetype || ''
 
@@ -18,17 +14,28 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     await m.react('⏳')
 
     try {
-        // Descargamos el buffer del mensaje citado
-        let media = await q.download()
-        if (!media) throw new Error('Buffer vacío.')
+        // ⟡ XLR4 BYPASS: Extracción directa del núcleo Baileys
+        let mtype = q.mtype || m.mtype
+        let mediaType = mtype ? mtype.replace('Message', '') : mime.split('/')[0]
+        
+        // Ajuste para notas de voz o audios
+        if (mediaType === 'audio' || mediaType === 'voice') mediaType = 'audio'
 
-        // Creamos el formulario para enviarlo a Catbox
+        const stream = await downloadContentFromMessage(q.msg || q, mediaType)
+        let media = Buffer.from([])
+        for await(const chunk of stream) {
+            media = Buffer.concat([media, chunk])
+        }
+
+        if (!media.length) throw new Error('Buffer vacío.')
+
         let bodyForm = new FormData()
         bodyForm.append('reqtype', 'fileupload')
-        // Le asignamos un nombre genérico para que Catbox lo acepte sin problemas
-        bodyForm.append('fileToUpload', media, 'file_xlr4.bin') 
+        
+        // Añadimos una extensión dinámica según el mime para evitar bloqueos
+        let ext = mime.split('/')[1].split(';')[0]
+        bodyForm.append('fileToUpload', media, `file_xlr4.${ext}`) 
 
-        // Enviamos la petición al servidor
         let res = await fetch('https://catbox.moe/user/api.php', {
             method: 'POST',
             body: bodyForm
@@ -36,7 +43,6 @@ let handler = async (m, { conn, usedPrefix, command }) => {
         
         if (!res.ok) throw new Error('Nodos de Catbox inactivos.')
         
-        // Catbox devuelve directamente el link en texto plano
         let link = await res.text()
 
         await m.react('⬇️')
@@ -54,7 +60,7 @@ let handler = async (m, { conn, usedPrefix, command }) => {
     } catch (e) {
         console.error('[XLR4 CATBOX ERROR]', e)
         await m.react('❌')
-        conn.sendMessage(m.chat, { text: `❄︎ [ ERROR CRÍTICO ]\n⟡ Detalle: Fallo al subir el archivo al host.\n${e.message}` }, { quoted: m })
+        conn.sendMessage(m.chat, { text: `❄︎ [ ERROR CRÍTICO ]\n⟡ Detalle: Extracción Baileys Fallida.\n${e.message.slice(0, 50)}` }, { quoted: m })
     }
 }
 
