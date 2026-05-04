@@ -88,7 +88,7 @@ const mediafireDl = async (url) => {
 }
 
 const handler = async (m, { conn, args, usedPrefix, command }) => {
-    if (/^(cancelar|stop)$/i.test(command)) {
+    if (command === 'cancelarmf') {
         const quotedId = m.quoted?.id
         if (!quotedId) return m.reply('❌ Responde al mensaje de progreso.')
         const dl = global.mfActiveDownloads.get(quotedId)
@@ -237,7 +237,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
 handler.help    = ['mediafire <enlace>', 'mf <enlace>']
 handler.tags    = ['downloader']
-handler.command = /^(mediafire|mf|cancelar|stop)$/i
+handler.command = ['mediafire', 'mf', 'cancelarmf']
 
 export default handler
-  
+        
