@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="https://upload.yotsuba.giize.com/u/jbHoJtR2.jpg" alt="Hiruka Celestial MD" width="100%"/>
+  <img src="https://upload.yotsuba.giize.com/u/jbHoJtR2.jpg" alt="Hiyuki Celestial MD" width="100%"/>
 
-  <h1>✦ Hiruka Celestial MD</h1>
+  <h1>❄︎ Hiyuki Celestial MD</h1>
   <p><i>WhatsApp Bot Premium — Z0RT SYSTEMS</i></p>
 
   ![Version](https://img.shields.io/badge/version-1.0.0-blue?style=flat-square)
@@ -23,8 +23,8 @@
 ## ✿ Instalación
 
 ```bash
-git clone https://github.com/tuusuario/hiruka-celestial-md
-cd hiruka-celestial-md
+git clone https://github.com/Zoredevteam-ctrl/hiyuki-celestial-md
+cd hiyuki-celestial-md
 npm install
 ```
 
@@ -50,23 +50,30 @@ node index.js
 | Feature | Estado |
 |---|---|
 | 🤖 Multi-plugin | ✅ |
-| 🛡️ Antiban integrado | ✅ |
+| 🛡️ Antibot & Antilink | ✅ |
 | 👤 Sistema de perfiles | ✅ |
-| 💰 Economía | ✅ |
-| 👢 Comandos admin | ✅ |
+| 💰 Economía completa | ✅ |
+| 🎭 Reacciones anime | ✅ |
+| 💞 Sistema social | ✅ |
+| 🎮 Juegos y trivia | ✅ |
+| 🎵 Descargas (Spotify, YT, IG) | ✅ |
+| 🤖 Sub-Bot system | ✅ |
 | 🎂 Cumpleaños | ✅ |
 | 🔄 Auto-reconexión | ✅ |
+| 📌 Pinterest downloader | ✅ |
+| ❄︎ Waifu claim system | ✅ |
 
 ---
 
 ## ✿ Estructura
 
 ```
-hiruka-celestial-md/
+hiyuki-celestial-md/
 ├── index.js          # Núcleo del bot
 ├── handler.js        # Manejador de comandos
 ├── settings.js       # Configuración global
 ├── plugins/          # Comandos del bot
+├── events/           # Eventos automáticos
 ├── lib/
 │   └── database.js   # Base de datos
 └── Sessions/         # Sesión de WhatsApp
@@ -79,18 +86,38 @@ hiruka-celestial-md/
 Edita `settings.js` para personalizar:
 
 ```js
-global.botName      = 'Hiruka Celestial MD'
-global.prefix       = '.'
-global.icono        = 'url_del_icono'
-global.rcanal       = 'url_del_canal'
+global.botName        = 'Hiyuki Celestial MD'
+global.prefix         = '#'
+global.icono          = 'url_del_icono'
+global.banner         = 'url_del_banner'
+global.rcanal         = 'url_del_canal'
 global.newsletterJid  = 'jid_del_canal'
 global.newsletterName = 'nombre_del_canal'
+global.owner          = [
+  ['tunumero', 'tu nombre', true]
+]
 ```
+
+---
+
+## ✿ Comandos principales
+
+| Categoría | Comandos |
+|---|---|
+| General | `#ping` `#menu` `#reg` `#owner` |
+| Economía | `#bal` `#chamba` `#daily` `#robar` `#top` |
+| Social | `#casar` `#divorcio` `#adoptar` |
+| Juegos | `#8ball` `#dado` `#ruleta` `#trivia` |
+| Anime | `#kiss` `#hug` `#pat` `#cry` `#neko` |
+| Grupo | `#kick` `#ban` `#promote` `#tagall` `#antilink` |
+| Descargas | `#play` `#spotify` `#ig` `#pin` |
+| Sub-Bot | `#jadibot` `#code` `#bots` `#setprimary` |
+| Waifu | `#c` `#rw` |
 
 ---
 
 <div align="center">
   <p>
-    <b>꒰⑅ᵕ༚ᵕ꒱˖♡ &nbsp; Hecho con amor por <a href="https://github.com/Zoredevteam-ctrl">˚₊· ͟͟͞͞  ɪ ᴀᴍ ᴋᴀᴍᴇᴋɪ</a> — Z0RT SYSTEMS</b>
+    <b>⟪❄︎⟫ Hecho con amor por <a href="https://github.com/Zoredevteam-ctrl">˚₊· ͟͟͞͞  ɪ ᴀᴍ  Aᴅʀɪᴇɴ</a> — Z0RT SYSTEMS</b>
   </p>
 </div>
