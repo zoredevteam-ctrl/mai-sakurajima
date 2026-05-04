@@ -30,7 +30,7 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
     await m.react('⏳')
 
     const encoded = encodeURIComponent(fbLink)
-    const apiKey  = global.APICAUSAS_KEY || 'causa-db9690e010e31139'
+    const apiKey  = global.APICAUSAS_KEY || '121-Nino-k'
     const apiUrl  = `https://rest.apicausas.xyz/api/v1/descargas/facebook?apikey=${apiKey}&url=${encoded}`
 
     let videoUrl  = null
