@@ -131,11 +131,6 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
         }, { quoted: m })
     }
 
-    const { key: waitKey } = await conn.sendMessage(m.chat, {
-        text: `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n  ⟡ _Extrayendo video de Facebook..._`,
-        contextInfo: ctx
-    }, { quoted: m })
-
     const scrapers = [scraperFdown, scraperSnapsave, scraperGetfvid]
     let result = null
 
@@ -149,22 +144,20 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
     }
 
     if (!result?.videoUrl) {
-        await conn.sendMessage(m.chat, {
+        return conn.sendMessage(m.chat, {
             text:
                 `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
                 `✦ [ EXTRACCIÓN FALLIDA ]\n` +
                 `  ⟡ No se pudo extraer el video de Facebook.\n` +
                 `  ⟡ El video puede ser privado o los servicios están caídos.`,
             contextInfo: ctx
-        }, { edit: waitKey })
-        return
+        }, { quoted: m })
     }
 
     let buffer
     try {
         buffer = await downloadVideo(result.videoUrl)
     } catch (e) {
-        console.log('[FB-DL] Error al descargar buffer:', e.message)
         await conn.sendMessage(m.chat, {
             text:
                 `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
@@ -172,12 +165,11 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
                 `  ⟡ Se extrajo el enlace pero falló la descarga.\n` +
                 `  ⟡ Intenta de nuevo o usa otro link.`,
             contextInfo: ctx
-        }, { edit: waitKey })
+        }, { quoted: m })
         return
     }
 
     const sizeText = (buffer.length / (1024 * 1024)).toFixed(2) + ' MB'
-
     const caption =
         `\`ˏˋ ❏ ғɪʟᴇ ɪɴғᴏ ˎˊ -\`\n` +
         `━━━━━━━━━━━━━━━━━━\n` +
@@ -185,11 +177,8 @@ let handler = async (m, { args, command, usedPrefix, conn }) => {
         `↬ \`⬡ ᴄᴀʟɪᴅᴀᴅ:\` *${result.quality || 'SD'}*\n` +
         `↬ \`ⴵ sɪᴢᴇ:\` *${sizeText}*\n` +
         `↬ \`↳ ʟɪɴᴋ:\` *${fbLink}*\n` +
-        `↬ \`⚙ sᴏᴜʀᴄᴇ:\` *${result.source}*\n` +
         `━━━━━━━━━━━━━━━━━━\n` +
         `> ✎ 「✿𝐇𝐢𝐲𝐮𝐤𝐢 এ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐩𝐚𝐭𝐫𝐨𝐧✿」`
-
-    try { await conn.sendMessage(m.chat, { delete: waitKey }) } catch {}
 
     await conn.sendMessage(m.chat, {
         video:    buffer,
@@ -205,4 +194,4 @@ handler.tags    = ['downloader']
 handler.command = ['fb', 'facebook', 'fbdl']
 
 export default handler
-    
+            
