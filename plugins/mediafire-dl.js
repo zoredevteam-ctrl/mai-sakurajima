@@ -203,4 +203,3 @@ handler.tags    = ['downloader']
 handler.command = ['mediafire', 'mf', 'cancelarmf']
 
 export default handler
-            
