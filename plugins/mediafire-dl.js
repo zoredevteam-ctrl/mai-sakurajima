@@ -18,8 +18,6 @@ const fmtBytes = (b) => {
     return (b / 1024).toFixed(2) + ' KB'
 }
 
-
-
 const getThumb = async () => {
     try {
         const r = await fetch(global.icono || global.banner || '')
@@ -103,14 +101,10 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
     const { signal } = controller
     let tempPath
 
-    const { key: statusKey } = await sendStyled(conn, m,
-        `⏳ _Descargando, espere..._\n\n_${global.botName || 'Hiyuki Celestial MD'}_`
-    )
-    const editStatus = txt => conn.sendMessage(m.chat, { text: txt, edit: statusKey })
-
     try {
+        // 1. Obtener los datos y el peso ANTES de enviar el mensaje
         const mfData = await mediafireDl(url)
-
+        
         const head = await axios.head(mfData.link, {
             headers:    { 'User-Agent': 'Mozilla/5.0' },
             httpsAgent,
@@ -118,9 +112,21 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
             timeout:    10000
         })
         const sizeBytes = parseInt(head.headers['content-length'] || '0')
+        const sizeFormatted = fmtBytes(sizeBytes)
 
+        // 2. Enviar el mensaje inicial con TODA la información (sin editar después)
+        const infoText = 
+            `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
+            `🔥 *${mfData.name}*\n` +
+            `✦ Tamaño: ${sizeFormatted}\n` +
+            `✦ Fuente: MediaFire\n\n` +
+            `⏳ _Descargando archivo, espere..._\n` +
+            `❄︎ _Enviado por ${global.botName || 'Hiyuki Celestial MD'}_`
+
+        const { key: statusKey } = await sendStyled(conn, m, infoText)
         global.mfActiveDownloads.set(statusKey.id, { controller })
 
+        // 3. Iniciar la descarga
         tempPath = join(tmpdir(), `mf_${Date.now()}_${mfData.name.replace(/[/\\:*?"<>|]/g, '_')}`)
 
         const response = await axios({
@@ -134,7 +140,6 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 
         let dlBytes = 0
         const dlStart = Date.now()
-        let lastWAUpdate = 0
 
         const dlStream = new Transform({
             transform(chunk, _, cb) {
@@ -144,20 +149,16 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
                 const speed = dlBytes / secs
                 const pct   = sizeBytes > 0 ? (dlBytes / sizeBytes) * 100 : 0
                 process.stdout.write(`\r[MediaFire] 📥 ${pct.toFixed(1)}% | ${fmtBytes(dlBytes)} | ${fmtBytes(speed)}/s`)
-                if (now - lastWAUpdate > 3000) {
-                    lastWAUpdate = now
-                }
                 cb(null, chunk)
             }
         })
 
         await pipeline(response.data, dlStream, fs.createWriteStream(tempPath), { signal })
-        console.log(`\n[MediaFire] ✅ ${mfData.name}`)
+        console.log(`\n[MediaFire] ✅ ${mfData.name} descargado al servidor.`)
 
         const realSize = fs.statSync(tempPath).size
         let upBytes = 0
         const upStart = Date.now()
-        let lastUpWA = 0
 
         const upStream = new Transform({
             transform(chunk, _, cb) {
@@ -167,40 +168,31 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
                 const speed = upBytes / secs
                 const pct   = (upBytes / realSize) * 100
                 process.stdout.write(`\r[MediaFire] 📤 ${pct.toFixed(1)}% | ${fmtBytes(upBytes)}/${fmtBytes(realSize)} | ${fmtBytes(speed)}/s`)
-                if (now - lastUpWA > 3000) {
-                    lastUpWA = now
-                }
                 cb(null, chunk)
             }
         })
 
         const readStream = fs.createReadStream(tempPath).pipe(upStream)
 
+        // 4. Enviar el archivo SIN caption (texto)
         await conn.sendMessage(m.chat, {
             document: { stream: readStream },
             fileName: mfData.name,
-            mimetype: mimeLookup(mfData.name) || 'application/octet-stream',
-            caption:
-                `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
-                `🔥 *${mfData.name}*\n` +
-                `✦ Tamaño: ${fmtBytes(realSize)}\n` +
-                `✦ Fuente: MediaFire\n` +
-                `❄︎ _Enviado por ${global.botName || 'Hiyuki Celestial MD'}_`
+            mimetype: mimeLookup(mfData.name) || 'application/octet-stream'
         }, { quoted: m })
 
         console.log(`\n[MediaFire] 🚀 Enviado a ${m.sender}`)
-        await editStatus(`✅ _Archivo enviado._\n\n_${global.botName || 'Hiyuki Celestial MD'}_`)
         global.mfActiveDownloads.delete(statusKey.id)
 
     } catch (e) {
         if (e.name === 'AbortError' || e.code === 'ERR_CANCELED') {
             console.log('\n[MediaFire] 🛑 Cancelado.')
+            m.reply('🛑 _Descarga cancelada._')
         } else {
             const msg = typeof e === 'string' ? e : `❌ *Error:* ${e.message}`
-            await editStatus(`❌ ${msg}\n\n_${global.botName || 'Hiyuki Celestial MD'}_`)
+            m.reply(msg)
             console.error('\n[MediaFire ERROR]', e)
         }
-        global.mfActiveDownloads.delete(statusKey?.id)
     } finally {
         if (tempPath && fs.existsSync(tempPath)) fs.unlinkSync(tempPath)
     }
@@ -211,4 +203,4 @@ handler.tags    = ['downloader']
 handler.command = ['mediafire', 'mf', 'cancelarmf']
 
 export default handler
-                                          
+            
