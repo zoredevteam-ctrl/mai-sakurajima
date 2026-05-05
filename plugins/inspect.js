@@ -1,94 +1,57 @@
 // ❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎
-// ✦ [ PROTOCOLO DE DIFUSIÓN CANAL / NEWSLETTER ]
+// ✦ [ PROTOCOLO DE INSPECCIÓN DE ENLACES ]
 // ⟡ Design & Control: Adrien | XLR4-Security
-// ⟡ Patch: Native Newsletter Support & Media Bypass
 
-import { downloadContentFromMessage } from '@whiskeysockets/baileys'
+let handler = async (m, { conn, args, usedPrefix, command }) => {
+    // 1. Extraer el código del enlace (soporta varios formatos)
+    const linkRegex = /chat.whatsapp.com\/([0-9A-Za-z]{20,24})/i
+    const text = args[0] || (m.quoted ? (m.quoted.text || m.quoted.body || '') : '')
+    const [_, code] = text.match(linkRegex) || []
 
-const plugin = async (m, { conn, args, isOwner, isROwner, prefix, command }) => {
-    // Verificar que exista el JID del canal en settings o global
-    const targetJid = global.newsletterJid
-    const sub = args[0]?.toLowerCase()
-
-    if (!sub) {
-        const infoMenu = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n✦ [ CONTROL DE CANAL / NEWSLETTER ]\n  ⟡ Status: Operativo\n  ⟡ Target JID: \`${targetJid || 'NO VINCULADO'}\`\n\n✦ [ COMANDOS DE ACCESO ]\n  ⟡ *${prefix + command} send* <texto>\n  ⟡ *${prefix + command} forward* (Cita media)\n  ⟡ *${prefix + command} jid* (Extraer ID)\n\n> ❄︎ XLR4-Security Protocol`
-        return conn.sendMessage(m.chat, { text: infoMenu }, { quoted: m })
+    if (!code) {
+        const syntax = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n✦ [ ERROR DE PARÁMETROS ]\n  ⟡ Ingrese un enlace de grupo para inspeccionar.\n  ⟡ Uso: *${usedPrefix + command} <enlace>*`
+        return conn.sendMessage(m.chat, { text: syntax }, { quoted: m })
     }
 
-    // ─── ENVIAR TEXTO DIRECTO ────────────────────────────────────────
-    if (sub === 'send') {
-        if (!isOwner) return m.reply('❄︎ [ ACCESO DENEGADO ]')
-        if (!targetJid) return m.reply('❄︎ [ ERROR ] No se ha configurado `global.newsletterJid`.')
+    await m.react('⏳')
+
+    try {
+        // 2. Solicitar metadatos al servidor de WhatsApp
+        const res = await conn.groupGetInviteInfo(code)
         
-        const texto = args.slice(1).join(' ')
-        if (!texto) return m.reply(`❄︎ [ ERROR ] Uso: *${prefix}${command} send <mensaje>*`)
+        // 3. Formatear la respuesta técnica
+        const caption = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
+            `✦ [ REPORTE DE INTELIGENCIA ]\n` +
+            `  ⟡ *Nombre:* ${res.subject}\n` +
+            `  ⟡ *JID:* \`${res.id}@g.us\`\n` +
+            `  ⟡ *Creador:* @${res.owner?.split('@')[0] || 'Desconocido'}\n` +
+            `  ⟡ *Creado:* ${new Date(res.creation * 1000).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}\n` +
+            `  ⟡ *Participantes:* ${res.size}\n\n` +
+            `✦ [ ESTADO DEL LINK ]\n` +
+            `  ⟡ Solo Admins: ${res.announce ? 'Sí' : 'No'}\n` +
+            `  ⟡ Restringido: ${res.restrict ? 'Sí' : 'No'}\n\n` +
+            `✦ [ DESCRIPCIÓN ]\n` +
+            `  ${res.desc || 'Sin descripción técnica.'}\n\n` +
+            `⟡ *Seguridad:* XLR4-Security Activa`
 
-        try {
-            await conn.sendMessage(targetJid, { text: texto })
-            return m.reply('❄︎ [ SEÑAL ENVIADA ] Mensaje transmitido al canal.')
-        } catch (e) {
-            return m.reply(`❄︎ [ FALLO ] No se pudo enviar al canal. Revisa si el Bot es Admin.`)
-        }
-    }
+        await conn.sendMessage(m.chat, { 
+            text: caption, 
+            mentions: res.owner ? [res.owner] : [] 
+        }, { quoted: m })
 
-    // ─── REENVIAR MEDIA (BYPASS EXTRACTION) ──────────────────────────
-    if (sub === 'forward') {
-        if (!isOwner) return m.reply('❄︎ [ ACCESO DENEGADO ]')
-        if (!m.quoted) return m.reply(`❄︎ [ ERROR ] Cita el mensaje para retransmitir.`)
-        if (!targetJid) return m.reply('❄︎ [ ERROR ] Canal no configurado.')
+        await m.react('✅')
 
-        const q = m.quoted
-        const mime = (q.msg || q).mimetype || ''
-        
-        try {
-            if (!mime) {
-                // Si es solo texto
-                await conn.sendMessage(targetJid, { text: q.text || q.body || '' })
-            } else {
-                // Protocolo de descarga segura
-                const mediaType = q.mtype.replace('Message', '')
-                const stream = await downloadContentFromMessage(q.msg || q, mediaType.includes('audio') ? 'audio' : mediaType)
-                let buffer = Buffer.from([])
-                for await (const chunk of stream) {
-                    buffer = Buffer.concat([buffer, chunk])
-                }
-
-                const messageOptions = {
-                    [mediaType]: buffer,
-                    caption: q.msg?.caption || ''
-                }
-
-                await conn.sendMessage(targetJid, messageOptions)
-            }
-            return m.reply('❄︎ [ TRANSMISIÓN EXITOSA ] El paquete de datos ha llegado al canal.')
-        } catch (e) {
-            console.error(e)
-            return m.reply(`❄︎ [ FALLO EN TRANSMISIÓN ]\n⟡ Detalle: ${e.message}`)
-        }
-    }
-
-    // ─── EXTRAER JID DEL CANAL ───────────────────────────────────────
-    if (sub === 'jid') {
-        if (!isROwner) return m.reply('❄︎ [ ACCESO NIVEL ROOT REQUERIDO ]')
-        try {
-            const inviteCode = global.rcanal.split('/').pop()
-            const metadata = await conn.newsletterMetadata('invite', inviteCode)
-            const jid = metadata?.id
-
-            return m.reply(
-                `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
-                `✦ [ IDENTIFICADOR ENCONTRADO ]\n` +
-                `  ⟡ JID: \`${jid}\`\n\n` +
-                `✦ [ ACCIÓN ]\n` +
-                `  ⟡ Copia este ID y pégalo en global.newsletterJid.`
-            )
-        } catch (e) {
-            return m.reply(`❄︎ [ ERROR ] No se pudo obtener el metadato del canal. Verifica el link en global.rcanal.`)
-        }
+    } catch (e) {
+        console.error('[XLR4 INSPECT ERROR]', e)
+        await m.react('❌')
+        conn.sendMessage(m.chat, { 
+            text: `❄︎ [ FALLO DE ANÁLISIS ]\n⟡ El link es inválido o el sistema ha sido bloqueado por el grupo.` 
+        }, { quoted: m })
     }
 }
 
-plugin.command = ['newsletter', 'nl', 'rcanal']
-plugin.owner = true
+handler.help = ['inspect']
+handler.tags = ['tools']
+handler.command = ['inspect', 'revisar', 'inspeccionar']
 
-export default plugin
+export default handler
