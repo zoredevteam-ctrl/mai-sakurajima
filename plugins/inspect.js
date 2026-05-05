@@ -1,88 +1,94 @@
 // ❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎
 // ✦ [ PROTOCOLO DE DIFUSIÓN CANAL / NEWSLETTER ]
 // ⟡ Design & Control: Adrien | XLR4-Security
+// ⟡ Patch: Native Newsletter Support & Media Bypass
 
-import { database } from '../lib/database.js'
+import { downloadContentFromMessage } from '@whiskeysockets/baileys'
 
 const plugin = async (m, { conn, args, isOwner, isROwner, prefix, command }) => {
+    // Verificar que exista el JID del canal en settings o global
+    const targetJid = global.newsletterJid
     const sub = args[0]?.toLowerCase()
 
-    // ─── ENVIAR TEXTO AL CANAL (NEWSLETTER) ───────────────────────────
-    if (sub === 'send') {
-        if (!isOwner) return m.reply('❄︎  [ ACCESO DENEGADO ]\n⟡ Solo el Owner puede emitir señales al canal.')
-        const texto = args.slice(1).join(' ')
-        if (!texto) return m.reply(`❄︎ [ ERROR ] Uso: *${prefix}${command} send <mensaje>*`)
-        
-        await global.sendToChannel(conn, texto, database.data)
-        return m.reply('❄︎ [ SEÑAL ENVIADA ] Mensaje transmitido al canal con éxito.')
+    if (!sub) {
+        const infoMenu = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n✦ [ CONTROL DE CANAL / NEWSLETTER ]\n  ⟡ Status: Operativo\n  ⟡ Target JID: \`${targetJid || 'NO VINCULADO'}\`\n\n✦ [ COMANDOS DE ACCESO ]\n  ⟡ *${prefix + command} send* <texto>\n  ⟡ *${prefix + command} forward* (Cita media)\n  ⟡ *${prefix + command} jid* (Extraer ID)\n\n> ❄︎ XLR4-Security Protocol`
+        return conn.sendMessage(m.chat, { text: infoMenu }, { quoted: m })
     }
 
-    // ─── REENVIAR MEDIA/TEXTO AL CANAL ────────────────────────────────
+    // ─── ENVIAR TEXTO DIRECTO ────────────────────────────────────────
+    if (sub === 'send') {
+        if (!isOwner) return m.reply('❄︎ [ ACCESO DENEGADO ]')
+        if (!targetJid) return m.reply('❄︎ [ ERROR ] No se ha configurado `global.newsletterJid`.')
+        
+        const texto = args.slice(1).join(' ')
+        if (!texto) return m.reply(`❄︎ [ ERROR ] Uso: *${prefix}${command} send <mensaje>*`)
+
+        try {
+            await conn.sendMessage(targetJid, { text: texto })
+            return m.reply('❄︎ [ SEÑAL ENVIADA ] Mensaje transmitido al canal.')
+        } catch (e) {
+            return m.reply(`❄︎ [ FALLO ] No se pudo enviar al canal. Revisa si el Bot es Admin.`)
+        }
+    }
+
+    // ─── REENVIAR MEDIA (BYPASS EXTRACTION) ──────────────────────────
     if (sub === 'forward') {
         if (!isOwner) return m.reply('❄︎ [ ACCESO DENEGADO ]')
-        if (!m.quoted) return m.reply(`❄︎ [ ERROR ] Cita el mensaje (texto/imagen/video) para retransmitir.`)
+        if (!m.quoted) return m.reply(`❄︎ [ ERROR ] Cita el mensaje para retransmitir.`)
+        if (!targetJid) return m.reply('❄︎ [ ERROR ] Canal no configurado.')
+
+        const q = m.quoted
+        const mime = (q.msg || q).mimetype || ''
         
-        const qType = m.quoted.mtype
         try {
-            if (qType === 'conversation' || qType === 'extendedTextMessage') {
-                await global.sendToChannel(conn, m.quoted.body || m.quoted.text || '', database.data)
-            } else if (qType === 'imageMessage' || qType === 'videoMessage') {
-                const media = await m.quoted.download()
-                const type = qType === 'imageMessage' ? 'image' : 'video'
-                
-                await conn.sendMessage(global.newsletterJid, {
-                    [type]: media,
-                    caption: m.quoted.msg?.caption || ''
-                })
+            if (!mime) {
+                // Si es solo texto
+                await conn.sendMessage(targetJid, { text: q.text || q.body || '' })
             } else {
-                return m.reply('❄︎ [ ADVERTENCIA ] Tipo de encriptación de media no soportada.')
+                // Protocolo de descarga segura
+                const mediaType = q.mtype.replace('Message', '')
+                const stream = await downloadContentFromMessage(q.msg || q, mediaType.includes('audio') ? 'audio' : mediaType)
+                let buffer = Buffer.from([])
+                for await (const chunk of stream) {
+                    buffer = Buffer.concat([buffer, chunk])
+                }
+
+                const messageOptions = {
+                    [mediaType]: buffer,
+                    caption: q.msg?.caption || ''
+                }
+
+                await conn.sendMessage(targetJid, messageOptions)
             }
             return m.reply('❄︎ [ TRANSMISIÓN EXITOSA ] El paquete de datos ha llegado al canal.')
         } catch (e) {
+            console.error(e)
             return m.reply(`❄︎ [ FALLO EN TRANSMISIÓN ]\n⟡ Detalle: ${e.message}`)
         }
     }
 
-    // ─── EXTRACCIÓN DE JID (TECNOLOGÍA XLR4) ─────────────────────────
+    // ─── EXTRAER JID DEL CANAL ───────────────────────────────────────
     if (sub === 'jid') {
         if (!isROwner) return m.reply('❄︎ [ ACCESO NIVEL ROOT REQUERIDO ]')
         try {
             const inviteCode = global.rcanal.split('/').pop()
             const metadata = await conn.newsletterMetadata('invite', inviteCode)
-            const jid = metadata?.id || 'No encontrado'
-            
+            const jid = metadata?.id
+
             return m.reply(
                 `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎\n\n` +
-                `✦ [ IDENTIFICADOR DE CANAL ]\n` +
+                `✦ [ IDENTIFICADOR ENCONTRADO ]\n` +
                 `  ⟡ JID: \`${jid}\`\n\n` +
-                `✦ [ CONFIGURACIÓN ]\n` +
-                `  ⟡ Actualiza global.newsletterJid en settings.js.`
+                `✦ [ ACCIÓN ]\n` +
+                `  ⟡ Copia este ID y pégalo en global.newsletterJid.`
             )
         } catch (e) {
-            return m.reply(`❄︎ [ ERROR DE VINCULACIÓN ]\n⟡ Detalle: ${e.message}`)
+            return m.reply(`❄︎ [ ERROR ] No se pudo obtener el metadato del canal. Verifica el link en global.rcanal.`)
         }
     }
-
-    // ─── MENÚ DE PROTOCOLO ───────────────────────────────────────────
-    const infoMenu = `❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎
-
-✦ [ CONTROL DE CANAL / NEWSLETTER ]
-  ⟡ Status: Operativo
-  ⟡ Canal: ${global.rcanal}
-  ⟡ Target JID: \`${global.newsletterJid}\`
-
-✦ [ COMANDOS DE ACCESO ]
-  ⟡ *${prefix + command} send* <texto>
-  ⟡ *${prefix + command} forward* (Cita media)
-  ⟡ *${prefix + command} jid* (Sincronizar JID)
-
-> ❄︎ XLR4-Security Protocol`
-
-    await conn.sendMessage(m.chat, { text: infoMenu }, { quoted: m })
 }
 
 plugin.command = ['newsletter', 'nl', 'rcanal']
-plugin.description = 'Gestión del canal de noticias de Hiyuki System'
-plugin.owner = true // Solo owners para evitar spam en el canal
+plugin.owner = true
 
 export default plugin
