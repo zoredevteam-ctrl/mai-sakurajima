@@ -32,7 +32,7 @@ global.newsletterName = '「✿𝐇𝐢𝐲𝐮𝐤𝐢 এ 𝐂𝐞𝐥𝐞𝐬
 global.banner = 'https://causas-files.vercel.app/fl/jwlr.jpg'
 
 // Icono (imagen pequeña para comandos)
-global.icono  = 'https://upload.yotsuba.giize.com/u/K-WsVHiN.jpg'
+global.icono  = 'https://causas-files.vercel.app/fl/9imx.jpg'
 
 // ━─── ✦ ───━  HELPERS DE IMAGEN  ━─── ✦ ───━
 
