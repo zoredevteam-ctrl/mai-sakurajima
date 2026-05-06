@@ -9,7 +9,7 @@ const getBannerBuffer = async (bannerSrc) => {
 }
 
 let handler = async (m, { conn, usedPrefix }) => {
-    const bannerSrc = global.banner = 'https://upload.yotsuba.giize.com/u/jbHoJtR2.jpg'
+    const bannerSrc = global.banner = 'https://causas-files.vercel.app/fl/jwlr.jpg'
     const canalLink = global.rcanal || ''
     const sender    = m.sender
     const username  = m.pushName || 'Usuario'
