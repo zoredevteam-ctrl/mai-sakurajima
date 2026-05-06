@@ -29,7 +29,7 @@ global.newsletterJid  = '120363408182996815@newsletter'
 global.newsletterName = '「✿𝐇𝐢𝐲𝐮𝐤𝐢 এ 𝐂𝐞𝐥𝐞𝐬𝐭𝐢𝐚𝐥 𝐩𝐚𝐭𝐫𝐨𝐧✿」'
 
 // Banner principal (imagen grande para menú)
-global.banner = 'https://upload.yotsuba.giize.com/u/jbHoJtR2.jpg'
+global.banner = 'https://causas-files.vercel.app/fl/jwlr.jpg'
 
 // Icono (imagen pequeña para comandos)
 global.icono  = 'https://upload.yotsuba.giize.com/u/K-WsVHiN.jpg'
