@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://upload.yotsuba.giize.com/u/jbHoJtR2.jpg" alt="Hiyuki Celestial MD" width="100%"/>
+  <img src='https://causas-files.vercel.app/fl/jwlr.jpg' alt="Hiyuki Celestial MD" width="100%"/>
 
   <h1>❄︎ Hiyuki Celestial MD</h1>
   <p><i>WhatsApp Bot Premium — Z0RT SYSTEMS</i></p>
