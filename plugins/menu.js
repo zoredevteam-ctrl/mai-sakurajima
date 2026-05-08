@@ -1,211 +1,109 @@
-const getBannerBuffer = async (bannerSrc) => {
-    if (!bannerSrc) return null
-    try {
-        if (bannerSrc.startsWith('data:image')) return Buffer.from(bannerSrc.split(',')[1], 'base64')
-        const res = await fetch(bannerSrc)
-        if (!res.ok) return null
-        return Buffer.from(await res.arrayBuffer())
-    } catch { return null }
-}
+import { performance } from 'perf_hooks'
+import os from 'os'
 
-let handler = async (m, { conn, usedPrefix }) => {
-    const bannerSrc = global.banner = 'https://causas-files.vercel.app/fl/jwlr.jpg'
-    const canalLink = global.rcanal || ''
-    const sender    = m.sender
-    const username  = m.pushName || 'Usuario'
+const handler = async (m, { conn, usedPrefix: px }) => {
+    // ── CONFIGURACIÓN DE MARCA ──────────────────────────────────────────────
+    const botName = '𝐇𝐈𝐘𝐔𝐊𝐈 𝐂𝐄𝐋𝐄𝐒𝐓𝐈𝐀𝐋'
+    const brand = '𝐙𝟎𝐑𝐓 𝐒𝐲𝐬𝐭𝐞𝐦𝐬'
+    const security = '𝐗𝐋𝐑𝟒-𝐒𝐞𝐜𝐮𝐫𝐢𝐭𝐲 𝐏𝐫𝐨𝐭𝐨𝐜𝐨𝐥'
+    const banner = 'https://causas-files.vercel.app/fl/jwlr.jpg'
+    const canal = global.rcanal || 'https://whatsapp.com'
 
-    // ── FECHA Y MOMENTO ───────────────────────────────────────────────────────
-    const now       = new Date()
-    const date      = new Intl.DateTimeFormat('es-CO', { timeZone: 'America/Bogota', day: '2-digit', month: '2-digit', year: 'numeric' }).format(now)
-    const hora      = new Intl.DateTimeFormat('es-CO', { timeZone: 'America/Bogota', hour: 'numeric', hour12: false }).format(now)
-    const h         = parseInt(hora)
-    const momentDay = h < 12 ? 'mañana' : h < 18 ? 'tarde' : 'noche'
+    // ── MÉTRICAS DE RENDIMIENTO ─────────────────────────────────────────────
+    const startTime = performance.now()
+    const speed = (performance.now() - startTime).toFixed(4)
+    const usedRam = (process.memoryUsage().rss / 1024 / 1024).toFixed(1)
+    const totalRam = (os.totalmem() / 1024 / 1024 / 1024).toFixed(0)
+    
+    const uptime = ((s) => {
+        const d = Math.floor(s / 86400); const h = Math.floor((s % 86400) / 3600); const m = Math.floor((s % 3600) / 60)
+        return `${d}d ${h}h ${m}m`
+    })(process.uptime())
 
-    // ── UPTIME ────────────────────────────────────────────────────────────────
-    const sec    = Math.floor(process.uptime())
-    const ud     = Math.floor(sec / 86400)
-    const uh     = Math.floor((sec % 86400) / 3600)
-    const um     = Math.floor((sec % 3600) / 60)
-    const uptime = ud > 0 ? `${ud}d ${uh}h ${um}m` : `${uh}h ${um}m`
+    // ── DATA DEL USUARIO ────────────────────────────────────────────────────
+    const user = global.db.data.users[m.sender] || {}
+    const { level = 1, exp = 0, money = 0 } = user
+    const isOwner = [conn.user.jid, ...global.owner.map(o => o[0] + '@s.whatsapp.net')].includes(m.sender)
 
-    // ── DATOS ─────────────────────────────────────────────────────────────────
-    const dbData   = global.db?.data || {}
-    const users    = dbData.users || {}
-    const totalreg = Object.keys(users).length
-    const userData = users[sender] || {}
-    const coins    = (userData.money || 0).toLocaleString()
-    const level    = userData.level || 1
-    const exp      = (userData.exp  || 0).toLocaleString()
-    const px       = usedPrefix || '#'
+    // ── ESTRUCTURA DEL MENÚ ─────────────────────────────────────────────────
+    let menu = `
+╭───  ❄︎  *${botName}* ───╮
+       ᴀᴜᴛᴏᴍᴀᴛɪᴢᴀᴄɪᴏ́ɴ & ᴇsᴛɪʟᴏ
 
-    // ── Owner check (Optimizado con Set) ──────────────────────────────────────
-    const senderNum = sender.split('@')[0].split(':')[0]
-    const ownersSet = new Set((Array.isArray(global.owner) ? global.owner : [global.owner]).map(o => String(Array.isArray(o) ? o[0] : o).replace(/\D/g, '')))
-    const esOwner   = ownersSet.has(senderNum)
+  *〔 ɪɴғᴏʀᴍᴀᴄɪᴏ́ɴ ᴅᴇʟ sɪsᴛᴇᴍᴀ 〕*
+  ✦ *Uptime:* ${uptime}
+  ✦ *Ping:* ${speed} ᴍs
+  ✦ *RAM:* ${usedRam}ᴍʙ / ${totalRam}ɢʙ
+  ✦ *Users:* ${Object.keys(global.db.data.users).length}
 
-    // ── MENÚ USUARIOS ─────────────────────────────────────────────────────────
-    const menuUsuarios = `
-❄︎  ──  H I Y U K I  S Y S T E M  ──  ❄︎
+  *〔 ᴇsᴛᴀᴅᴏ ᴅᴇ ᴄᴜᴇɴᴛᴀ 〕*
+  ✦ *Nivel:* ${level}
+  ✦ *Coins:* ${money.toLocaleString()}
+  ✦ *Exp:* ${exp.toLocaleString()}
 
-✦ Saludos, ${username}. 
-Sistema iniciado correctamente esta ${momentDay}.
+  *〔 ᴄᴏᴍᴀɴᴅᴏs ɢᴇɴᴇʀᴀʟᴇs 〕*
+  • \`${px}ping\` • \`${px}uptime\` • \`${px}menu\`
+  • \`${px}owner\` • \`${px}reg\` • \`${px}clima\`
+  • \`${px}sticker\` • \`${px}toimg\`
 
-╔═══════⩽ ✧ ❄︎ ✧ ⩾═══════╗
-       「 I N F O  S I S T E M A 」
-╚═══════⩽ ✧ ❄︎ ✧ ⩾═══════╝
-║ ✦ *Creadores*: Adrien
-║ ✦ *Estado*: Online / Estable
-║ ✦ *Fecha*: ${date}
-║ ✦ *Uptime*: ${uptime}
-║ ✦ *Usuarios*: ${totalreg}
-╚════════════════════════╝
+  *〔 ɢᴇsᴛɪᴏ́ɴ ᴅᴇ ɢʀᴜᴘᴏ 〕*
+  • \`${px}kick\` • \`${px}add\` • \`${px}ban\`
+  • \`${px}tagall\` • \`${px}grupinfo\` • \`${px}antilink\`
+  • \`${px}warn\` • \`${px}hidemensaje\`
+  • \`${px}welcome\` • \`${px}goodbye\`
 
-╔═══════⩽ ✧ ❄️ ✧ ⩾═══════╗
-     「 I N F O  U S U A R I O 」
-╚═══════⩽ ✧ ❄️ ✧ ⩾═══════╝
-║ ✦ *Nombre*: ${username}
-║ ✦ *Nivel*: ${level}
-║ ✦ *EXP*: ${exp}
-║ ✦ *Coins*: ${coins}
-╚═══════════════════════╝
+  *〔 ᴘᴇʀғɪʟ & sᴏᴄɪᴀʟ 〕*
+  • \`${px}perfil\` • \`${px}userinfo\` • \`${px}setbio\`
+  • \`${px}setbirthday\` • \`${px}casar\`
+  • \`${px}divorcio\` • \`${px}adoptar\`
 
-╔═══════⩽ ✧ ⚔︎ ✧ ⩾═══════╗
-  「 C O M A N D O S  G E N E R A L E S 」
-╚═══════⩽ ✧ ⚔︎ ✧ ⩾═══════╝
-╰─➤ ❄︎
-┣ ✦ *${px}ping* ┊ Latencia
-┣ ✦ *${px}uptime* ┊ Tiempo activo
-┣ ✦ *${px}menu* ┊ Este menú
-┣ ✦ *${px}owner* ┊ Contacto
-┣ ✦ *${px}reg* ┊ Registrarse
-┣ ✦ *${px}clima* ┊ Clima
-┣ ✦ *${px}sticker* ┊ Crear sticker
-┣ ✦ *${px}toimg* ┊ Sticker → imagen
+  *〔 ᴇᴄᴏɴᴏᴍɪ́ᴀ & ᴊᴜᴇɢᴏs 〕*
+  • \`${px}bal\` • \`${px}chamba\` • \`${px}daily\`
+  • \`${px}dep\` • \`${px}retirar\` • \`${px}transferir\`
+  • \`${px}robar\` • \`${px}top\` • \`${px}8ball\`
+  • \`${px}dado\` • \`${px}ruleta\` • \`${px}trivia\`
+  • \`${px}adivinanza\`
 
-╔═══════⩽ ✧ ❄︎ ✧ ⩾═══════╗
-    「 C O M A N D O S  G R U P O 」
-╚═══════⩽ ✧ ❄︎ ✧ ⩾═══════╝
-╰─➤ ❄︎
-┣ ✦ *${px}kick* ┊ Expulsar
-┣ ✦ *${px}add* ┊ Agregar
-┣ ✦ *${px}ban* ┊ Banear
-┣ ✦ *${px}tagall* ┊ Mencionar todos
-┣ ✦ *${px}grupinfo* ┊ Info grupo
-┣ ✦ *${px}antilink* ┊ Antilink
-┣ ✦ *${px}warn* ┊ Advertir
-┣ ✦ *${px}hidemensaje* ┊ Borrar mensaje
-┣ ✦ *${px}welcome on/off* ┊ Bienvenida
-┣ ✦ *${px}goodbye on/off* ┊ Despedida
+  *〔 ʀᴇᴀᴄᴄɪᴏɴᴇs 〕*
+  • \`${px}kiss\` • \`${px}hug\` • \`${px}pat\` • \`${px}kill\`
+  • \`${px}bite\` • \`${px}cry\` • \`${px}happy\` • \`${px}angry\`
+  • \`${px}cuddle\` • \`${px}neko\` • \`${px}cafe\` 
+  • \`${px}dormir\` • \`${px}push\`
+`
 
-╔═══════⩽ ✧ ❄️ ✧ ⩾═══════╗
-   「 C O M A N D O S  P E R F I L 」
-╚═══════⩽ ✧ ❄️ ✧ ⩾═══════╝
-╰─➤ ❄︎
-┣ ✦ *${px}perfil* ┊ Ver perfil
-┣ ✦ *${px}userinfo* ┊ Info usuario
-┣ ✦ *${px}setbio* ┊ Cambiar bio
-┣ ✦ *${px}setbirthday* ┊ Cumpleaños
-
-╔═══════⩽ ✧ ❄︎ ✧ ⩾═══════╗
-    「 E C O N O M Í A 」
-╚═══════⩽ ✧ ❄︎ ✧ ⩾═══════╝
-╰─➤ ❄︎
-┣ ✦ *${px}bal* ┊ Balance
-┣ ✦ *${px}chamba* ┊ Trabajar
-┣ ✦ *${px}daily* ┊ Recompensa diaria
-┣ ✦ *${px}dep* ┊ Depositar
-┣ ✦ *${px}retirar* ┊ Retirar
-┣ ✦ *${px}transferir* ┊ Enviar
-┣ ✦ *${px}robar* ┊ Robar
-┣ ✦ *${px}top* ┊ Ranking
-
-╔═══════⩽ ✧ ❄︎ ✧ ⩾═══════╗
-    「 S O C I A L 」
-╚═══════⩽ ✧ ❄︎ ✧ ⩾═══════╝
-╰─➤ ❄︎
-┣ ✦ *${px}casar* ┊ Casarse
-┣ ✦ *${px}divorcio* ┊ Divorciarse
-┣ ✦ *${px}adoptar* ┊ Adoptar
-
-╔═══════⩽ ✧ ❄︎ ✧ ⩾═══════╗
-    「 J U E G O S 」
-╚═══════⩽ ✧ ❄︎ ✧ ⩾═══════╝
-╰─➤ ❄︎
-┣ ✦ *${px}8ball* ┊ Bola mágica
-┣ ✦ *${px}dado* ┊ Tirar dado
-┣ ✦ *${px}ruleta* ┊ Ruleta
-┣ ✦ *${px}trivia* ┊ Trivia
-┣ ✦ *${px}adivinanza* ┊ Adivinanza
-
-╔═══════⩽ ✧ ❄︎ ✧ ⩾═══════╗
-   「 R E A C C I O N E S 」
-╚═══════⩽ ✧ ❄︎ ✧ ⩾═══════╝
-╰─➤ ❄︎
-┣ ✦ *${px}kiss* ┊ Besar
-┣ ✦ *${px}hug* ┊ Abrazar
-┣ ✦ *${px}pat* ┊ Palmear
-┣ ✦ *${px}kill* ┊ Matar
-┣ ✦ *${px}bite* ┊ Morder
-┣ ✦ *${px}cry* ┊ Llorar
-┣ ✦ *${px}happy* ┊ Feliz
-┣ ✦ *${px}angry* ┊ Enojado
-┣ ✦ *${px}cuddle* ┊ Acurrucarse
-┣ ✦ *${px}neko* ┊ Neko
-┣ ✦ *${px}cafe* ┊ Café
-┣ ✦ *${px}dormir* ┊ Dormir
-┣ ✦ *${px}push* ┊ Empujar
-╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝
-
-✦ Powered by Adrien | XLR4-Security ✦`.trim()
-
-    // ── MENÚ OWNER ────────────────────────────────────────────────────────────
-    const menuOwner = menuUsuarios + `
-
-╔═══════⩽ ✧ ❄︎ ✧ ⩾═══════╗
-    「 C O M A N D O S  O W N E R 」
-╚═══════⩽ ✧ ❄︎ ✧ ⩾═══════╝
-╰─➤ ❄︎
-┣ ✦ *${px}addpremium* ┊ Dar premium
-┣ ✦ *${px}delpremium* ┊ Quitar premium
-┣ ✦ *${px}listpremium* ┊ Ver premiums
-┣ ✦ *${px}addowner* ┊ Añadir owner
-┣ ✦ *${px}delowner* ┊ Quitar owner
-┣ ✦ *${px}listowner* ┊ Ver owners
-╚▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬ִ▭࣪▬▭╝`
-
-    const txt          = esOwner ? menuOwner : menuUsuarios
-    const bannerBuffer = await getBannerBuffer(bannerSrc)
-
-    try {
-        await conn.sendMessage(m.chat, {
-            document:    bannerBuffer || Buffer.from(''),
-            mimetype:    'application/pdf',
-            fileName:    `⌜ ❄︎ 𝐇𝐢𝐲𝐮𝐤𝐢 𝐒𝐲𝐬𝐭𝐞𝐦 ❄︎ ⌟`,
-            fileLength:  99999999999999,
-            pageCount:   1,
-            caption:     txt,
-            contextInfo: {
-                isForwarded:     true,
-                forwardingScore: 99,
-                externalAdReply: {
-                    title:                 `❄︎ 𝖧𝖨𝖸𝖴𝖪𝖨 𝖲𝖸𝖲𝖳𝖤𝖬 ❄︎`,
-                    body:                  `✦ XLR4-Security Protocol`,
-                    mediaType:             1,
-                    thumbnail:             bannerBuffer,
-                    renderLargerThumbnail: true,
-                    sourceUrl:             canalLink
-                },
-                forwardedNewsletterMessageInfo: {
-                    newsletterJid:   global.newsletterJid  || '120363408182996815@newsletter',
-                    newsletterName:  global.newsletterName || '「 ❄︎ 𝐇𝐢𝐲𝐮𝐤𝐢 𝐒𝐲𝐬𝐭𝐞𝐦 ❄︎ 」',
-                    serverMessageId: -1
-                }
-            }
-        }, { quoted: m })
-    } catch (e) {
-        console.error(e)
-        await conn.sendMessage(m.chat, { text: txt }, { quoted: m })
+    if (isOwner) {
+        menu += `
+  *〔 ᴘᴀɴᴇʟ ᴅᴇ ᴄᴏɴᴛʀᴏʟ 〕*
+  • \`${px}addpremium\` • \`${px}delpremium\`
+  • \`${px}listpremium\` • \`${px}addowner\`
+  • \`${px}delowner\` • \`${px}listowner\`
+`
     }
+
+    menu += `
+  *${security}*
+  ${brand} © 2026
+╰──────────────────────────╯`.trim()
+
+    // ── ENVÍO PREMIUM (DOCUMENTO PDF) ───────────────────────────────────────
+    await conn.sendMessage(m.chat, {
+        document: { url: banner },
+        mimetype: 'application/pdf',
+        fileName: `❄︎ 𝐇𝐢𝐲𝐮𝐤𝐢 𝐒𝐲𝐬𝐭𝐞𝐦 ❄︎`,
+        fileLength: 999999999999,
+        pageCount: 1,
+        caption: menu,
+        contextInfo: {
+            externalAdReply: {
+                title: `❄︎ ${botName} ᴠ𝟸 ❄︎`,
+                body: `ᴅᴇᴠᴇʟᴏᴘᴇᴅ ʙʏ ᴢ𝟶ʀᴛ sʏsᴛᴇᴍs`,
+                mediaType: 1,
+                thumbnailUrl: banner,
+                sourceUrl: canal,
+                renderLargerThumbnail: true
+            }
+        }
+    }, { quoted: m })
 }
 
 handler.command = ['menu', 'help', 'comandos']
