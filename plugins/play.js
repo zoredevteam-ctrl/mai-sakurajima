@@ -1,10 +1,10 @@
-// plugins/play.js
+import fetch from 'node-fetch'
 
 const NEX_BASE = 'https://nex-magical.vercel.app'
 const NEX_KEY  = 'NEX-D0E7E64C8F5E44E98F00D6B4'
 
-// ── Fetch con timeout ─────────────────────────────────────────────────────────
-const nexFetch = async (url, timeout = 25000) => {
+// ── Fetch con timeout y limpieza de JSON ─────────────────────────────────────
+const nexFetch = async (url, timeout = 30000) => {
     const controller = new AbortController()
     const timer      = setTimeout(() => controller.abort(), timeout)
     try {
@@ -16,8 +16,10 @@ const nexFetch = async (url, timeout = 25000) => {
                 'x-api-key':  NEX_KEY
             }
         })
-        if (!res.ok) throw new Error('HTTP ' + res.status)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
         const raw = await res.text()
+        if (!raw) throw new Error('Respuesta vacía del servidor')
+        
         return JSON.parse(
             raw.replace(/\bverdadero\b/g, 'true')
                .replace(/\bfalso\b/g,     'false')
@@ -38,39 +40,23 @@ const searchYoutube = async (query) => {
                 const secs  = parts.length >= 2
                     ? parseInt(parts[parts.length - 2] || 0) * 60 + parseInt(parts[parts.length - 1] || 0)
                     : 0
-                return secs >= 60
+                return secs >= 20 // Filtro mínimo de 20 segundos
             })
             const s = filtered[0] || r.result[0]
             return {
-                title:    s.title    || query,
-                url:      s.link     || '',
-                author:   s.channel  || 'Desconocido',
+                title:    s.title    || 'Sin título',
+                url:      s.link     || s.url || '',
+                author:   s.channel  || s.author || 'Desconocido',
                 duration: s.duration || 'N/A',
-                thumb:    s.imageUrl || ''
+                thumb:    s.imageUrl || s.thumbnail || ''
             }
         }
-    } catch (e) { console.log('[PLAY] search falló:', e.message) }
+    } catch (e) { console.error('[SEARCH ERROR]:', e.message) }
     return null
 }
 
-// ── Descargar audio ───────────────────────────────────────────────────────────
-const getAudio = async (videoUrl) => {
-    const r    = await nexFetch(`${NEX_BASE}/download/audio?url=${encodeURIComponent(videoUrl)}&apikey=${NEX_KEY}`)
-    const link = r?.result?.url || r?.resultado?.url || null
-    if (link?.startsWith('http')) return link
-    throw new Error('no se obtuvo URL de descarga')
-}
-
-// ── Thumbnail del bot ─────────────────────────────────────────────────────────
-const getThumb = async () => {
-    try {
-        const res = await fetch(global.icono || global.banner || '')
-        if (!res.ok) return null
-        return Buffer.from(await res.arrayBuffer())
-    } catch { return null }
-}
-
-const ctx = (thumb, title, body) => ({
+// ── Obtener Contexto de Mensaje ───────────────────────────────────────────────
+const getCtx = (thumb, title, body, url) => ({
     isForwarded: true,
     forwardedNewsletterMessageInfo: {
         newsletterJid:   global.newsletterJid,
@@ -78,135 +64,101 @@ const ctx = (thumb, title, body) => ({
         newsletterName:  global.newsletterName
     },
     externalAdReply: {
-        title:                 title || global.botName || 'Hiruka',
-        body:                  body  || global.newsletterName || '',
+        title:                 title || global.botName || 'Hiruka Music',
+        body:                  body  || global.newsletterName || 'Reproductor de Audio',
         mediaType:             1,
         thumbnail:             thumb,
-        renderLargerThumbnail: false,
-        sourceUrl:             global.rcanal || ''
+        renderLargerThumbnail: true,
+        sourceUrl:             url   || global.rcanal || ''
     }
 })
 
 // ── Handler ───────────────────────────────────────────────────────────────────
-let handler = async (m, { conn, text }) => {
+let handler = async (m, { conn, text, usedPrefix, command }) => {
     const query = (text || '').trim()
-    const thumb = await getThumb()
-    const px    = global.prefix || '#'
+    const px    = usedPrefix || '#'
+    
+    // Obtener miniatura base del bot
+    let botThumb = null
+    try {
+        const img = global.icono || global.banner
+        if (img) botThumb = await (await fetch(img)).buffer()
+    } catch { botThumb = null }
 
-    if (!query) return conn.sendMessage(m.chat, {
-        text:
-            `⊹ ──────────────────── ⊹\n` +
-            `  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  ✦  𝐌 𝐔 𝐒 𝐈 𝐂\n` +
-            `⊹ ──────────────────── ⊹\n\n` +
-            `  ◈ uso    *${px}play <canción o link>*\n` +
-            `  ◈ ejemplo  *${px}play bad bunny*\n` +
-            `  ◈ link     *${px}play https://youtu.be/...*\n\n` +
-            `> ✎ ${global.newsletterName || global.botName}`,
-        contextInfo: ctx(thumb)
-    }, { quoted: m })
+    if (!query) {
+        return conn.sendMessage(m.chat, {
+            text: `⊹ ──────────────────── ⊹\n  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  ✦  𝐌 𝐔 𝐒 𝐈 𝐂\n⊹ ──────────────────── ⊹\n\n  ◈ uso: *${px + command} <nombre o link>*\n  ◈ ejemplo: *${px + command} Stay With Me*\n\n> ✎ ${global.botName}`,
+            contextInfo: getCtx(botThumb)
+        }, { quoted: m })
+    }
 
-    await m.react('✦')
+    await m.react('🔍')
 
     try {
-        // ── Resolver búsqueda o link ──────────────────────────────────────────
         let song = null
-        const isLink = query.includes('youtube.com/watch') || query.includes('youtu.be/')
+        const ytRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+        const isLink  = ytRegex.test(query)
 
         if (isLink) {
-            const videoId = query.match(/(?:youtu\.be\/|watch\?v=)([a-zA-Z0-9_-]{11})/)?.[1]
+            const vid = query.match(ytRegex)[1]
             song = {
-                title:    'YouTube Video',
-                url:      query,
-                author:   'N/A',
+                title: 'YouTube Video',
+                url:   `https://www.youtube.com/watch?v=${vid}`,
+                author: 'YouTube',
                 duration: 'N/A',
-                thumb:    videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : ''
+                thumb: `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`
             }
         } else {
             song = await searchYoutube(query)
         }
 
-        if (!song?.url) {
+        if (!song || !song.url) {
             await m.react('✗')
-            return conn.sendMessage(m.chat, {
-                text:
-                    `⊹ ──────────────────── ⊹\n` +
-                    `  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  ✦  𝐌 𝐔 𝐒 𝐈 𝐂\n` +
-                    `⊹ ──────────────────── ⊹\n\n` +
-                    `  ◈ no encontré resultados para\n` +
-                    `  ◈ *${query}*\n\n` +
-                    `> ✎ ${global.newsletterName || global.botName}`,
-                contextInfo: ctx(thumb)
-            }, { quoted: m })
+            return m.reply('❌ No se encontraron resultados para tu búsqueda.')
         }
 
-        // ── Mensaje de info mientras descarga ─────────────────────────────────
-        const infoTxt =
-            `⊹ ──────────────────── ⊹\n` +
-            `  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  ✦  𝐌 𝐔 𝐒 𝐈 𝐂\n` +
-            `⊹ ──────────────────── ⊹\n\n` +
-            `  ◈ título    *${song.title}*\n` +
-            `  ◈ canal     ${song.author}\n` +
-            `  ◈ duración  ${song.duration}\n\n` +
-            `  descargando... (⁠✿⁠◡⁠‿⁠◡⁠)\n\n` +
-            `> ✎ ${global.newsletterName || global.botName}`
+        // Mensaje de espera
+        const infoTxt = `⊹ ──────────────────── ⊹\n  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  ✦  𝐌 𝐔 𝐒 𝐈 𝐂\n⊹ ──────────────────── ⊹\n\n  ◈ *Título:* ${song.title}\n  ◈ *Canal:* ${song.author}\n  ◈ *Duración:* ${song.duration}\n\n> Enviando audio, espera un momento...`
+        
+        await conn.sendMessage(m.chat, {
+            image: { url: song.thumb },
+            caption: infoTxt,
+            contextInfo: getCtx(botThumb, song.title, song.author, song.url)
+        }, { quoted: m })
 
-        const infoCtx = ctx(thumb, song.title.slice(0, 60), song.author)
-        infoCtx.externalAdReply.thumbnailUrl = song.thumb || global.banner
-        infoCtx.externalAdReply.sourceUrl    = song.url
+        await m.react('📥')
 
-        if (song.thumb) {
-            await conn.sendMessage(m.chat, {
-                image:       { url: song.thumb },
-                caption:     infoTxt,
-                contextInfo: infoCtx
-            }, { quoted: m })
-        } else {
-            await conn.sendMessage(m.chat, {
-                text:        infoTxt,
-                contextInfo: infoCtx
-            }, { quoted: m })
-        }
+        // Descarga de audio
+        const downloadUrl = `${NEX_BASE}/download/audio?url=${encodeURIComponent(song.url)}&apikey=${NEX_KEY}`
+        const resDownload = await nexFetch(downloadUrl)
+        const audioLink   = resDownload?.result?.url || resDownload?.resultado?.url
 
-        await m.react('⬇')
+        if (!audioLink) throw new Error('No se pudo obtener el enlace de descarga.')
 
-        // ── Descargar y enviar audio ──────────────────────────────────────────
-        const audioUrl    = await getAudio(song.url)
-        const audioRes    = await fetch(audioUrl)
-        if (!audioRes.ok) throw new Error('error al descargar audio: HTTP ' + audioRes.status)
-        const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
-        if (!audioBuffer || audioBuffer.length < 1000) throw new Error('audio vacío o corrupto')
+        const audioRes = await fetch(audioLink)
+        if (!audioRes.ok) throw new Error('Error al conectar con el servidor de archivos.')
+        
+        const audioBuffer = await audioRes.buffer()
+        if (audioBuffer.length < 100) throw new Error('El archivo de audio está dañado o vacío.')
 
-        const audioCtx = ctx(thumb, song.title.slice(0, 60), song.author)
-        audioCtx.externalAdReply.thumbnailUrl = song.thumb || global.banner
-        audioCtx.externalAdReply.sourceUrl    = song.url
+        await m.react('🎶')
 
         await conn.sendMessage(m.chat, {
-            audio:       audioBuffer,
-            mimetype:    'audio/mpeg',
-            ptt:         false,
-            fileName:    song.title.slice(0, 60) + '.mp3',
-            contextInfo: audioCtx
+            audio:    audioBuffer,
+            mimetype: 'audio/mp4', // MP4 Audio suele ser más compatible en WhatsApp
+            fileName: `${song.title}.mp3`,
+            contextInfo: getCtx(botThumb, song.title, song.author, song.url)
         }, { quoted: m })
 
-        await m.react('✓')
+        await m.react('✅')
 
     } catch (e) {
-        console.error('[PLAY ERROR]', e.message)
-        await m.react('✗')
-        const thumb = await getThumb()
-        return conn.sendMessage(m.chat, {
-            text:
-                `⊹ ──────────────────── ⊹\n` +
-                `  𝐇 𝐈 𝐑 𝐔 𝐊 𝐀  ✦  𝐌 𝐔 𝐒 𝐈 𝐂\n` +
-                `⊹ ──────────────────── ⊹\n\n` +
-                `  ◈ ocurrió un error durante la descarga\n` +
-                `  ◈ ${e.message.slice(0, 120)}\n\n` +
-                `> ✎ ${global.newsletterName || global.botName}`,
-            contextInfo: ctx(thumb)
-        }, { quoted: m })
+        console.error(e)
+        await m.react('❌')
+        m.reply(`⚠️ *Error:* ${e.message}`)
     }
 }
 
-handler.command = ['play', 'mp3', 'ytmp3', 'musica', 'playaudio']
-handler.tags    = ['descargas']
+handler.command = ['play', 'mp3', 'music', 'musica']
+handler.tags    = ['dl']
 export default handler
