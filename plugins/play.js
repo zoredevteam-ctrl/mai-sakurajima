@@ -1,10 +1,8 @@
-const NEX_BASE = 'https://nex-magical.vercel.app'
-const NEX_KEY  = 'NEX-D0E7E64C8F5E44E98F00D6B4'
+const API_BASE = 'https://rest.apicausas.xyz'
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
-// NexEvo a veces responde con valores en español — normalizamos siempre
-const nexFetch = async (url, timeout = 25000) => {
+const causasFetch = async (url, timeout = 25000) => {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeout)
     try {
@@ -12,12 +10,13 @@ const nexFetch = async (url, timeout = 25000) => {
             signal: controller.signal,
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Linux; Android 15; Pixel 7) AppleWebKit/537.36',
-                'Accept': 'application/json',
-                'x-api-key': NEX_KEY
+                'Accept': 'application/json'
             }
         })
         if (!res.ok) throw new Error('HTTP ' + res.status)
         const raw = await res.text()
+        
+        // Normalización de booleanos/nulos en español por si las dudas
         const fixed = raw
             .replace(/\bverdadero\b/g, 'true')
             .replace(/\bfalso\b/g,     'false')
@@ -32,28 +31,31 @@ const nexFetch = async (url, timeout = 25000) => {
 
 const searchYoutube = async (query) => {
     try {
-        const r = await nexFetch(`${NEX_BASE}/search/youtube?q=${encodeURIComponent(query)}&apikey=${NEX_KEY}`)
-        if (r?.status && r?.result?.length) {
+        // Adaptado al endpoint de búsqueda de la nueva API
+        const r = await causasFetch(`${API_BASE}/search/youtube?q=${encodeURIComponent(query)}`)
+        const results = r?.result || r?.resultado || r?.data
+        
+        if (results && results.length) {
             // Preferir videos de más de 1 minuto (evitar shorts)
-            const filtered = r.result.filter(v => {
+            const filtered = results.filter(v => {
                 const parts = (v.duration || '0:00').split(':')
                 const secs  = parts.length >= 2
                     ? parseInt(parts[parts.length - 2] || 0) * 60 + parseInt(parts[parts.length - 1] || 0)
                     : 0
                 return secs >= 60
             })
-            const s = filtered[0] || r.result[0]
-            console.log('[PLAY] OK NexEvo search:', s.title)
+            const s = filtered[0] || results[0]
+            console.log('[PLAY] OK Causas API search:', s.title)
             return {
                 title:    s.title    || query,
-                url:      s.link     || '',
-                author:   s.channel  || 'Desconocido',
+                url:      s.link     || s.url || '',
+                author:   s.channel  || s.author || 'Desconocido',
                 duration: s.duration || 'N/A',
-                views:    'N/A',
-                thumb:    s.imageUrl || ''
+                views:    s.views    || 'N/A',
+                thumb:    s.imageUrl || s.thumbnail || s.thumb || ''
             }
         }
-    } catch (e) { console.log('[PLAY] NexEvo search falló:', e.message) }
+    } catch (e) { console.log('[PLAY] Causas API search falló:', e.message) }
     return null
 }
 
@@ -61,16 +63,16 @@ const searchYoutube = async (query) => {
 
 const getAudio = async (videoUrl) => {
     try {
-        // NexEvo necesita el URL encodado correctamente
         const encoded = encodeURIComponent(videoUrl)
-        const r = await nexFetch(`${NEX_BASE}/download/audio?url=${encoded}&apikey=${NEX_KEY}`)
-        console.log('[PLAY] NexEvo download response status:', r?.status, '| tiene url:', !!r?.result?.url)
-        // Soporta tanto inglés (status/result/url) como español (estado/resultado/url)
-        const link = r?.result?.url || r?.resultado?.url || null
+        const r = await causasFetch(`${API_BASE}/download/audio?url=${encoded}`)
+        console.log('[PLAY] Causas API download response:', !!r)
+        
+        // Búsqueda flexible del enlace de descarga directo
+        const link = r?.result?.url || r?.resultado?.url || r?.data?.url || r?.url || r?.link || null
         if (link && link.startsWith('http')) return link
-        throw new Error('NexEvo no devolvió URL de descarga')
+        throw new Error('La API no devolvió una URL de descarga válida')
     } catch (e) {
-        throw new Error('NexEvo falló: ' + e.message)
+        throw new Error('Causas API falló: ' + e.message)
     }
 }
 
@@ -160,14 +162,14 @@ let handler = async (m, { conn, text }) => {
 
         await m.react('⬇️')
 
-        // ── 3. Descargar audio desde NexEvo ──
+        // ── 3. Descargar audio desde la nueva API ──
         const audioUrl    = await getAudio(song.url)
         const audioRes    = await fetch(audioUrl)
-        if (!audioRes.ok) throw new Error('Error al descargar audio: HTTP ' + audioRes.status)
+        if (!audioRes.ok) throw new Error('Error al descargar el archivo de audio: HTTP ' + audioRes.status)
         const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
 
         if (!audioBuffer || audioBuffer.length < 1000) {
-            throw new Error('El audio descargado está vacío o corrupto')
+            throw new Error('El archivo descargado no parece un audio válido')
         }
 
         // ── 4. Enviar audio ──
