@@ -13,14 +13,10 @@ const causasFetch = async (url, timeout = 25000) => {
                 'Accept': 'application/json'
             }
         })
-        if (!res.ok) throw new Error('HTTP ' + res.status)
         const raw = await res.text()
-        
-        const fixed = raw
-            .replace(/\bverdadero\b/g, 'true')
-            .replace(/\bfalso\b/g,     'false')
-            .replace(/\bnulo\b/g,      'null')
-        return JSON.parse(fixed)
+        return { ok: res.ok, status: res.status, raw }
+    } catch (e) {
+        return { ok: false, status: 'FETCH_ERROR', raw: e.message }
     } finally {
         clearTimeout(timer)
     }
@@ -28,19 +24,26 @@ const causasFetch = async (url, timeout = 25000) => {
 
 // ─── BÚSQUEDA YOUTUBE ─────────────────────────────────────────────────────────
 
-const searchYoutube = async (query) => {
+const searchYoutube = async (query, debugInfo) => {
     try {
         const endpoint = `${API_BASE}/search/youtube?q=${encodeURIComponent(query)}`
-        console.log('[PLAY] Buscando en:', endpoint)
+        debugInfo.searchUrl = endpoint
         
-        const r = await causasFetch(endpoint)
-        console.log('[PLAY] Respuesta completa de la API:', JSON.stringify(r)) // <-- Esto te dirá qué falla en la consola
+        const res = await causasFetch(endpoint)
+        debugInfo.searchResponse = `[Status ${res.status}] ${res.raw.slice(0, 300)}`
         
-        // Mapeo ultra flexible por si cambian los nombres de las propiedades
+        if (!res.ok) return null
+        
+        // Normalizar y parsear
+        const fixed = res.raw
+            .replace(/\bverdadero\b/g, 'true')
+            .replace(/\bfalso\b/g,     'false')
+            .replace(/\bnulo\b/g,      'null')
+            
+        const r = JSON.parse(fixed)
         const results = r?.result || r?.resultado || r?.data || r?.videos || r?.items || (Array.isArray(r) ? r : null)
         
         if (results && results.length) {
-            // Intentar evitar shorts
             const filtered = results.filter(v => {
                 const parts = (v.duration || '0:00').split(':')
                 const secs  = parts.length >= 2
@@ -49,7 +52,6 @@ const searchYoutube = async (query) => {
                 return secs >= 60
             })
             const s = filtered[0] || results[0]
-            console.log('[PLAY] Video seleccionado:', s.title)
             
             return {
                 title:    s.title    || s.name || query,
@@ -60,23 +62,36 @@ const searchYoutube = async (query) => {
                 thumb:    s.imageUrl || s.thumbnail || s.thumb || s.image || ''
             }
         }
-    } catch (e) { console.log('[PLAY] Causas API search falló:', e.message) }
+    } catch (e) { 
+        debugInfo.searchResponse += ` | Catch: ${e.message}`
+    }
     return null
 }
 
 // ─── DESCARGA AUDIO ───────────────────────────────────────────────────────────
 
-const getAudio = async (videoUrl) => {
+const getAudio = async (videoUrl, debugInfo) => {
     try {
         const encoded = encodeURIComponent(videoUrl)
-        const r = await causasFetch(`${API_BASE}/download/audio?url=${encoded}`)
-        console.log('[PLAY] Respuesta descarga API:', JSON.stringify(r))
+        const endpoint = `${API_BASE}/download/audio?url=${encoded}`
         
+        const res = await causasFetch(endpoint)
+        debugInfo.downloadResponse = `[Status ${res.status}] ${res.raw.slice(0, 300)}`
+        
+        if (!res.ok) throw new Error(`Servidor respondió con estado: ${res.status}`)
+        
+        const fixed = res.raw
+            .replace(/\bverdadero\b/g, 'true')
+            .replace(/\bfalso\b/g,     'false')
+            .replace(/\bnulo\b/g,      'null')
+            
+        const r = JSON.parse(fixed)
         const link = r?.result?.url || r?.resultado?.url || r?.data?.url || r?.url || r?.link || r?.result || r?.download || null
+        
         if (link && link.startsWith('http')) return link
-        throw new Error('La API no devolvió una URL de descarga válida')
+        throw new Error('No se encontró un enlace de descarga directo en el JSON')
     } catch (e) {
-        throw new Error('Causas API falló: ' + e.message)
+        throw new Error('Error en descarga: ' + e.message)
     }
 }
 
@@ -84,6 +99,9 @@ const getAudio = async (videoUrl) => {
 
 let handler = async (m, { conn, text }) => {
     const query = (text || '').trim()
+    
+    // Objeto local para almacenar logs de esta petición
+    let debugInfo = { searchUrl: '', searchResponse: 'Ninguna', downloadResponse: 'Ninguna' }
 
     if (!query) {
         const thumb = await global.getBannerThumb()
@@ -122,7 +140,7 @@ let handler = async (m, { conn, text }) => {
                 thumb:    videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : ''
             }
         } else {
-            song = await searchYoutube(query)
+            song = await searchYoutube(query, debugInfo)
         }
 
         if (!song?.url) {
@@ -132,11 +150,14 @@ let handler = async (m, { conn, text }) => {
             return conn.sendMessage(m.chat, {
                 text:
                     `╭━━━━━━━━━━━━━━━━╮\n` +
-                    `┃  ❌ *SIN RESULTADOS*\n` +
+                    `┃  ❌ *SIN RESULTADOS* ┃\n` +
                     `╰━━━━━━━━━━━━━━━━╯\n\n` +
                     `*ᐛ🎀* No encontré nada para *${query}*\n` +
                     `> ✰ Intenta con un nombre más específico o el link directo~\n\n` +
-                    `_Ejemplo: https://youtu.be/..._ 🦋`,
+                    `🛠️ *INFO DE DEPURACIÓN (API):*\n` +
+                    `➔ *URL:* \`${debugInfo.searchUrl}\n\` +
+                    `➔ *Respuesta:* \`${debugInfo.searchResponse}\`\n\n` +
+                    `_¡Copia este mensaje completo y pásamelo para ver qué responde la API!_ 🦋`,
                 contextInfo: ctx
             }, { quoted: m })
         }
@@ -164,7 +185,7 @@ let handler = async (m, { conn, text }) => {
 
         await m.react('⬇️')
 
-        const audioUrl    = await getAudio(song.url)
+        const audioUrl    = await getAudio(song.url, debugInfo)
         const audioRes    = await fetch(audioUrl)
         if (!audioRes.ok) throw new Error('Error al descargar el archivo de audio: HTTP ' + audioRes.status)
         const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
@@ -195,11 +216,13 @@ let handler = async (m, { conn, text }) => {
         return conn.sendMessage(m.chat, {
             text:
                 `╭━━━━━━━━━━━━━━━━╮\n` +
-                `┃  ❌ *ERROR AL PROCESAR*\n` +
+                `┃  ❌ *ERROR AL PROCESAR* ┃\n` +
                 `╰━━━━━━━━━━━━━━━━╯\n\n` +
                 `*ᐛ🎀* Ugh, algo salió mal...\n` +
                 `> ✰ ${e.message}\n\n` +
-                `_Intenta de nuevo en unos segundos, tonto_ 🦋`,
+                `🛠️ *INFO DE DEPURACIÓN (DESCARGA):*\n` +
+                `➔ *Respuesta:* \`${debugInfo.downloadResponse}\`\n\n` +
+                `_Pásame este texto para corregir la lectura del JSON._ 🦋`,
             contextInfo: ctx
         }, { quoted: m })
     }
