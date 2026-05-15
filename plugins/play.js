@@ -34,7 +34,6 @@ const searchYoutube = async (query, debugInfo) => {
         
         if (!res.ok) return null
         
-        // Normalizar y parsear
         const fixed = res.raw
             .replace(/\bverdadero\b/g, 'true')
             .replace(/\bfalso\b/g,     'false')
@@ -99,8 +98,6 @@ const getAudio = async (videoUrl, debugInfo) => {
 
 let handler = async (m, { conn, text }) => {
     const query = (text || '').trim()
-    
-    // Objeto local para almacenar logs de esta petición
     let debugInfo = { searchUrl: '', searchResponse: 'Ninguna', downloadResponse: 'Ninguna' }
 
     if (!query) {
@@ -155,7 +152,7 @@ let handler = async (m, { conn, text }) => {
                     `*ᐛ🎀* No encontré nada para *${query}*\n` +
                     `> ✰ Intenta con un nombre más específico o el link directo~\n\n` +
                     `🛠️ *INFO DE DEPURACIÓN (API):*\n` +
-                    `➔ *URL:* \`${debugInfo.searchUrl}\n\` +
+                    `➔ *URL:* \`${debugInfo.searchUrl}\`\n` +
                     `➔ *Respuesta:* \`${debugInfo.searchResponse}\`\n\n` +
                     `_¡Copia este mensaje completo y pásamelo para ver qué responde la API!_ 🦋`,
                 contextInfo: ctx
