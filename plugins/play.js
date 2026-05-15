@@ -16,7 +16,6 @@ const causasFetch = async (url, timeout = 25000) => {
         if (!res.ok) throw new Error('HTTP ' + res.status)
         const raw = await res.text()
         
-        // Normalización de booleanos/nulos en español por si las dudas
         const fixed = raw
             .replace(/\bverdadero\b/g, 'true')
             .replace(/\bfalso\b/g,     'false')
@@ -31,12 +30,17 @@ const causasFetch = async (url, timeout = 25000) => {
 
 const searchYoutube = async (query) => {
     try {
-        // Adaptado al endpoint de búsqueda de la nueva API
-        const r = await causasFetch(`${API_BASE}/search/youtube?q=${encodeURIComponent(query)}`)
-        const results = r?.result || r?.resultado || r?.data
+        const endpoint = `${API_BASE}/search/youtube?q=${encodeURIComponent(query)}`
+        console.log('[PLAY] Buscando en:', endpoint)
+        
+        const r = await causasFetch(endpoint)
+        console.log('[PLAY] Respuesta completa de la API:', JSON.stringify(r)) // <-- Esto te dirá qué falla en la consola
+        
+        // Mapeo ultra flexible por si cambian los nombres de las propiedades
+        const results = r?.result || r?.resultado || r?.data || r?.videos || r?.items || (Array.isArray(r) ? r : null)
         
         if (results && results.length) {
-            // Preferir videos de más de 1 minuto (evitar shorts)
+            // Intentar evitar shorts
             const filtered = results.filter(v => {
                 const parts = (v.duration || '0:00').split(':')
                 const secs  = parts.length >= 2
@@ -45,14 +49,15 @@ const searchYoutube = async (query) => {
                 return secs >= 60
             })
             const s = filtered[0] || results[0]
-            console.log('[PLAY] OK Causas API search:', s.title)
+            console.log('[PLAY] Video seleccionado:', s.title)
+            
             return {
-                title:    s.title    || query,
+                title:    s.title    || s.name || query,
                 url:      s.link     || s.url || '',
                 author:   s.channel  || s.author || 'Desconocido',
                 duration: s.duration || 'N/A',
                 views:    s.views    || 'N/A',
-                thumb:    s.imageUrl || s.thumbnail || s.thumb || ''
+                thumb:    s.imageUrl || s.thumbnail || s.thumb || s.image || ''
             }
         }
     } catch (e) { console.log('[PLAY] Causas API search falló:', e.message) }
@@ -65,10 +70,9 @@ const getAudio = async (videoUrl) => {
     try {
         const encoded = encodeURIComponent(videoUrl)
         const r = await causasFetch(`${API_BASE}/download/audio?url=${encoded}`)
-        console.log('[PLAY] Causas API download response:', !!r)
+        console.log('[PLAY] Respuesta descarga API:', JSON.stringify(r))
         
-        // Búsqueda flexible del enlace de descarga directo
-        const link = r?.result?.url || r?.resultado?.url || r?.data?.url || r?.url || r?.link || null
+        const link = r?.result?.url || r?.resultado?.url || r?.data?.url || r?.url || r?.link || r?.result || r?.download || null
         if (link && link.startsWith('http')) return link
         throw new Error('La API no devolvió una URL de descarga válida')
     } catch (e) {
@@ -104,7 +108,6 @@ let handler = async (m, { conn, text }) => {
     await m.react('🔍')
 
     try {
-        // ── 1. Resolver búsqueda o link directo ──
         let song = null
         const isYtLink = query.includes('youtube.com/watch') || query.includes('youtu.be/')
 
@@ -138,7 +141,6 @@ let handler = async (m, { conn, text }) => {
             }, { quoted: m })
         }
 
-        // ── 2. Enviar info mientras descarga ──
         const caption =
             `╭━━━━━━━━━━━━━━━━╮\n` +
             `┃  🎵 *NINO MUSIC* 🎵\n` +
@@ -162,7 +164,6 @@ let handler = async (m, { conn, text }) => {
 
         await m.react('⬇️')
 
-        // ── 3. Descargar audio desde la nueva API ──
         const audioUrl    = await getAudio(song.url)
         const audioRes    = await fetch(audioUrl)
         if (!audioRes.ok) throw new Error('Error al descargar el archivo de audio: HTTP ' + audioRes.status)
@@ -172,7 +173,6 @@ let handler = async (m, { conn, text }) => {
             throw new Error('El archivo descargado no parece un audio válido')
         }
 
-        // ── 4. Enviar audio ──
         const audioCtx = global.getNewsletterCtx(thumb, song.title.slice(0, 60), global.botName + ' Music 🎵')
         audioCtx.externalAdReply.thumbnailUrl = song.thumb || global.banner
         audioCtx.externalAdReply.sourceUrl    = song.url
