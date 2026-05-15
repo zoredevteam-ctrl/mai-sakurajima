@@ -25,19 +25,25 @@ const causasFetch = async (url, timeout = 25000) => {
 // ─── BÚSQUEDA YOUTUBE ─────────────────────────────────────────────────────────
 
 const searchYoutube = async (query, debugInfo) => {
-    // Lista de rutas más comunes para buscar en este tipo de APIs
+    // Repertorio extendido de rutas de búsqueda comunes
     const endpoints = [
         `${API_BASE}/search/youtube?q=${encodeURIComponent(query)}`,
         `${API_BASE}/api/search/youtube?q=${encodeURIComponent(query)}`,
+        `${API_BASE}/api/search/yt?q=${encodeURIComponent(query)}`,
+        `${API_BASE}/api/yts?q=${encodeURIComponent(query)}`,
         `${API_BASE}/ytsearch?q=${encodeURIComponent(query)}`,
-        `${API_BASE}/api/ytsearch?q=${encodeURIComponent(query)}`
+        `${API_BASE}/api/ytsearch?q=${encodeURIComponent(query)}`,
+        `${API_BASE}/youtube?q=${encodeURIComponent(query)}`,
+        `${API_BASE}/yt?q=${encodeURIComponent(query)}`,
+        `${API_BASE}/api/youtube?q=${encodeURIComponent(query)}`,
+        `${API_BASE}/api/yt?q=${encodeURIComponent(query)}`
     ]
 
     for (let endpoint of endpoints) {
         try {
             debugInfo.searchUrl = endpoint
             const res = await causasFetch(endpoint)
-            debugInfo.searchResponse = `[Status ${res.status}] ${res.raw.slice(0, 200)}`
+            debugInfo.searchResponse = `[Status ${res.status}] ${res.raw.slice(0, 150)}`
 
             if (res.ok) {
                 const fixed = res.raw
@@ -71,18 +77,23 @@ const searchYoutube = async (query, debugInfo) => {
 
 const getAudio = async (videoUrl, debugInfo) => {
     const encoded = encodeURIComponent(videoUrl)
-    // Lista de rutas más comunes para descargas por si la original también cambia
+    // Repertorio extendido de rutas de descarga comunes
     const endpoints = [
         `${API_BASE}/download/audio?url=${encoded}`,
         `${API_BASE}/api/download/audio?url=${encoded}`,
         `${API_BASE}/downloader/ytmp3?url=${encoded}`,
-        `${API_BASE}/api/downloader/ytmp3?url=${encoded}`
+        `${API_BASE}/api/downloader/ytmp3?url=${encoded}`,
+        `${API_BASE}/api/ytmp3?url=${encoded}`,
+        `${API_BASE}/ytmp3?url=${encoded}`,
+        `${API_BASE}/api/download/ytmp3?url=${encoded}`,
+        `${API_BASE}/download/ytmp3?url=${encoded}`
     ]
 
     for (let endpoint of endpoints) {
         try {
+            debugInfo.downloadResponse = `[Url: ${endpoint}]`
             const res = await causasFetch(endpoint)
-            debugInfo.downloadResponse = `[Status ${res.status}] ${res.raw.slice(0, 200)}`
+            debugInfo.downloadResponse = `[Status ${res.status}] ${res.raw.slice(0, 150)}`
 
             if (res.ok) {
                 const fixed = res.raw
@@ -158,7 +169,7 @@ let handler = async (m, { conn, text }) => {
                     `┃  ❌ *SIN RESULTADOS* ┃\n` +
                     `╰━━━━━━━━━━━━━━━━╯\n\n` +
                     `*ᐛ🎀* No encontré nada para *${query}*\n` +
-                    `> ✰ Probé múltiples rutas en la API y todas fallaron.\n\n` +
+                    `> ✰ Probé todo el repertorio de rutas de búsqueda y fallaron.\n\n` +
                     `🛠️ *ÚLTIMO INTENTO:* \`${debugInfo.searchUrl}\`\n` +
                     `➔ *Respuesta:* \`${debugInfo.searchResponse}\`\n\n` +
                     `_Prueba usando un enlace directo de YouTube para ver si el descargador responde._ 🦋`,
@@ -225,7 +236,7 @@ let handler = async (m, { conn, text }) => {
                 `*ᐛ🎀* Ugh, algo salió mal...\n` +
                 `> ✰ ${e.message}\n\n` +
                 `🛠️ *LOG DE DESCARGA:* \`${debugInfo.downloadResponse}\`\n\n` +
-                `_Si sale error de rutas, es que esta API usa endpoints completamente diferentes._ 🦋`,
+                `_Pásame este reporte si vuelve a fallar con el link m directo._ 🦋`,
             contextInfo: ctx
         }, { quoted: m })
     }
