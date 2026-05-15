@@ -1,8 +1,9 @@
-const API_BASE = 'https://rest.apicausas.xyz'
+const API_YUKI = 'https://api.yuki-wabot.my.id'
+const API_STELLAR = 'https://api.stellarwa.xyz'
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 
-const causasFetch = async (url, timeout = 25000) => {
+const requestFetch = async (url, timeout = 25000) => {
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeout)
     try {
@@ -13,10 +14,11 @@ const causasFetch = async (url, timeout = 25000) => {
                 'Accept': 'application/json'
             }
         })
-        const raw = await res.text()
-        return { ok: res.ok, status: res.status, raw }
+        if (!res.ok) return { ok: false, status: res.status }
+        const raw = await res.json()
+        return { ok: true, data: raw }
     } catch (e) {
-        return { ok: false, status: 'FETCH_ERROR', raw: e.message }
+        return { ok: false, error: e.message }
     } finally {
         clearTimeout(timer)
     }
@@ -24,50 +26,25 @@ const causasFetch = async (url, timeout = 25000) => {
 
 // ─── BÚSQUEDA YOUTUBE ─────────────────────────────────────────────────────────
 
-const searchYoutube = async (query, debugInfo) => {
-    // Repertorio extendido de rutas de búsqueda comunes
-    const endpoints = [
-        `${API_BASE}/search/youtube?q=${encodeURIComponent(query)}`,
-        `${API_BASE}/api/search/youtube?q=${encodeURIComponent(query)}`,
-        `${API_BASE}/api/search/yt?q=${encodeURIComponent(query)}`,
-        `${API_BASE}/api/yts?q=${encodeURIComponent(query)}`,
-        `${API_BASE}/ytsearch?q=${encodeURIComponent(query)}`,
-        `${API_BASE}/api/ytsearch?q=${encodeURIComponent(query)}`,
-        `${API_BASE}/youtube?q=${encodeURIComponent(query)}`,
-        `${API_BASE}/yt?q=${encodeURIComponent(query)}`,
-        `${API_BASE}/api/youtube?q=${encodeURIComponent(query)}`,
-        `${API_BASE}/api/yt?q=${encodeURIComponent(query)}`
-    ]
+const searchYoutube = async (query) => {
+    // Intento 1: Yuki API
+    let res = await requestFetch(`${API_YUKI}/api/search/yt?q=${encodeURIComponent(query)}`)
+    let results = res.data?.result || res.data?.data
+    
+    // Intento 2: Stellar API si Yuki falla
+    if (!res.ok || !results?.length) {
+        res = await requestFetch(`${API_STELLAR}/api/search/youtube?q=${encodeURIComponent(query)}`)
+        results = res.data?.result || res.data?.data
+    }
 
-    for (let endpoint of endpoints) {
-        try {
-            debugInfo.searchUrl = endpoint
-            const res = await causasFetch(endpoint)
-            debugInfo.searchResponse = `[Status ${res.status}] ${res.raw.slice(0, 150)}`
-
-            if (res.ok) {
-                const fixed = res.raw
-                    .replace(/\bverdadero\b/g, 'true')
-                    .replace(/\bfalso\b/g,     'false')
-                    .replace(/\bnulo\b/g,      'null')
-                    
-                const r = JSON.parse(fixed)
-                const results = r?.result || r?.resultado || r?.data || r?.videos || r?.items || (Array.isArray(r) ? r : null)
-                
-                if (results && results.length) {
-                    const s = results[0]
-                    return {
-                        title:    s.title    || s.name || query,
-                        url:      s.link     || s.url || '',
-                        author:   s.channel  || s.author || 'Desconocido',
-                        duration: s.duration || 'N/A',
-                        views:    s.views    || 'N/A',
-                        thumb:    s.imageUrl || s.thumbnail || s.thumb || s.image || ''
-                    }
-                }
-            }
-        } catch (e) {
-            debugInfo.searchResponse += ` | Error: ${e.message}`
+    if (results && results.length) {
+        const s = results[0]
+        return {
+            title:    s.title || query,
+            url:      s.url || s.link || `https://www.youtube.com/watch?v=${s.videoId}`,
+            author:   s.author?.name || s.channel || s.author || 'Desconocido',
+            duration: s.timestamp || s.duration || 'N/A',
+            thumb:    s.thumbnail || s.image || s.imageUrl || ''
         }
     }
     return null
@@ -75,49 +52,27 @@ const searchYoutube = async (query, debugInfo) => {
 
 // ─── DESCARGA AUDIO ───────────────────────────────────────────────────────────
 
-const getAudio = async (videoUrl, debugInfo) => {
+const getAudio = async (videoUrl) => {
     const encoded = encodeURIComponent(videoUrl)
-    // Repertorio extendido de rutas de descarga comunes
-    const endpoints = [
-        `${API_BASE}/download/audio?url=${encoded}`,
-        `${API_BASE}/api/download/audio?url=${encoded}`,
-        `${API_BASE}/downloader/ytmp3?url=${encoded}`,
-        `${API_BASE}/api/downloader/ytmp3?url=${encoded}`,
-        `${API_BASE}/api/ytmp3?url=${encoded}`,
-        `${API_BASE}/ytmp3?url=${encoded}`,
-        `${API_BASE}/api/download/ytmp3?url=${encoded}`,
-        `${API_BASE}/download/ytmp3?url=${encoded}`
-    ]
-
-    for (let endpoint of endpoints) {
-        try {
-            debugInfo.downloadResponse = `[Url: ${endpoint}]`
-            const res = await causasFetch(endpoint)
-            debugInfo.downloadResponse = `[Status ${res.status}] ${res.raw.slice(0, 150)}`
-
-            if (res.ok) {
-                const fixed = res.raw
-                    .replace(/\bverdadero\b/g, 'true')
-                    .replace(/\bfalso\b/g,     'false')
-                    .replace(/\bnulo\b/g,      'null')
-                    
-                const r = JSON.parse(fixed)
-                const link = r?.result?.url || r?.resultado?.url || r?.data?.url || r?.url || r?.link || r?.result || r?.download || null
-                
-                if (link && link.startsWith('http')) return link
-            }
-        } catch (e) {
-            debugInfo.downloadResponse += ` | Error: ${e.message}`
-        }
+    
+    // Intento 1: Yuki API (/api/download/ytmp3)
+    let res = await requestFetch(`${API_YUKI}/api/download/ytmp3?url=${encoded}`)
+    let link = res.data?.result?.url || res.data?.result?.download || res.data?.data?.url
+    
+    // Intento 2: Stellar API (/api/download/ytmp3)
+    if (!res.ok || !link) {
+        res = await requestFetch(`${API_STELLAR}/api/download/ytmp3?url=${encoded}`)
+        link = res.data?.result?.url || res.data?.result?.download || res.data?.data?.url
     }
-    throw new Error('La API no admitió ninguna de las rutas de descarga conocidas.')
+
+    if (link && link.startsWith('http')) return link
+    throw new Error('Ninguna de las APIs pudo generar el enlace de descarga.')
 }
 
 // ─── HANDLER ──────────────────────────────────────────────────────────────────
 
 let handler = async (m, { conn, text }) => {
     const query = (text || '').trim()
-    let debugInfo = { searchUrl: '', searchResponse: 'Ninguna', downloadResponse: 'Ninguna' }
 
     if (!query) {
         const thumb = await global.getBannerThumb()
@@ -152,11 +107,10 @@ let handler = async (m, { conn, text }) => {
                 url:      query,
                 author:   'N/A',
                 duration: 'N/A',
-                views:    'N/A',
                 thumb:    videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : ''
             }
         } else {
-            song = await searchYoutube(query, debugInfo)
+            song = await searchYoutube(query)
         }
 
         if (!song?.url) {
@@ -169,14 +123,13 @@ let handler = async (m, { conn, text }) => {
                     `┃  ❌ *SIN RESULTADOS* ┃\n` +
                     `╰━━━━━━━━━━━━━━━━╯\n\n` +
                     `*ᐛ🎀* No encontré nada para *${query}*\n` +
-                    `> ✰ Probé todo el repertorio de rutas de búsqueda y fallaron.\n\n` +
-                    `🛠️ *ÚLTIMO INTENTO:* \`${debugInfo.searchUrl}\`\n` +
-                    `➔ *Respuesta:* \`${debugInfo.searchResponse}\`\n\n` +
-                    `_Prueba usando un enlace directo de YouTube para ver si el descargador responde._ 🦋`,
+                    `> ✰ Asegúrate de escribir bien el nombre o intenta con otro término~\n\n` +
+                    `_¡Vamos, intenta de nuevo!_ 🦋`,
                 contextInfo: ctx
             }, { quoted: m })
         }
 
+        // Enviar Info del video
         const caption =
             `╭━━━━━━━━━━━━━━━━╮\n` +
             `┃  🎵 *NINO MUSIC* 🎵\n` +
@@ -185,7 +138,7 @@ let handler = async (m, { conn, text }) => {
             `✿⃘ *Canal* › ${song.author}\n` +
             `✿⃘ *Duración* › ${song.duration}\n` +
             `✿⃘ *Link* › ${song.url}\n\n` +
-            `𐙚 ❀ ｡ ↻ _Dame un momento, ya te envío el audio~_ 🦋`
+            `𐙚 ❀ ｡ ↻ _Dame un momento, ya te envío el audio..._ 🦋`
 
         const thumb = await global.getBannerThumb()
         const ctx   = global.getNewsletterCtx(thumb, song.title.slice(0, 60), global.botName + ' Music 🎵')
@@ -200,15 +153,17 @@ let handler = async (m, { conn, text }) => {
 
         await m.react('⬇️')
 
-        const audioUrl    = await getAudio(song.url, debugInfo)
+        // Descarga
+        const audioUrl    = await getAudio(song.url)
         const audioRes    = await fetch(audioUrl)
-        if (!audioRes.ok) throw new Error('Error al descargar el archivo de audio: HTTP ' + audioRes.status)
+        if (!audioRes.ok) throw new Error('Error al descargar el buffer de audio: HTTP ' + audioRes.status)
         const audioBuffer = Buffer.from(await audioRes.arrayBuffer())
 
         if (!audioBuffer || audioBuffer.length < 1000) {
-            throw new Error('El archivo descargado no parece un audio válido')
+            throw new Error('El archivo de audio se descargó vacío.')
         }
 
+        // Envío de Audio
         const audioCtx = global.getNewsletterCtx(thumb, song.title.slice(0, 60), global.botName + ' Music 🎵')
         audioCtx.externalAdReply.thumbnailUrl = song.thumb || global.banner
         audioCtx.externalAdReply.sourceUrl    = song.url
@@ -233,10 +188,9 @@ let handler = async (m, { conn, text }) => {
                 `╭━━━━━━━━━━━━━━━━╮\n` +
                 `┃  ❌ *ERROR AL PROCESAR* ┃\n` +
                 `╰━━━━━━━━━━━━━━━━╯\n\n` +
-                `*ᐛ🎀* Ugh, algo salió mal...\n` +
-                `> ✰ ${e.message}\n\n` +
-                `🛠️ *LOG DE DESCARGA:* \`${debugInfo.downloadResponse}\`\n\n` +
-                `_Pásame este reporte si vuelve a fallar con el link m directo._ 🦋`,
+                `*ᐛ🎀* Ugh, ocurrió un problema con los servidores de descarga...\n` +
+                `> ✰ *Detalle:* ${e.message}\n\n` +
+                `_Prueba con otra canción por el momento tonto_ 🦋`,
             contextInfo: ctx
         }, { quoted: m })
     }
